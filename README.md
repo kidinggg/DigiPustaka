@@ -45,18 +45,21 @@ Peran Kontribusi: Desain UI/UX
 Status: Mahasiswa Sistem Informasi
 Institusi: Universitas Buana Perjuangan Karawang
 Fokus: Merancang tampilan antarmuka pengguna (UI) yang menarik dan pengalaman pengguna (UX) yang nyaman untuk aplikasi DigiPustaka, termasuk skema warna, tata letak, dan alur navigasi.
+
 Alfiansyah Hidayat
 
 Peran Kontribusi: Perancangan Database & Analisis Data Awal
 Status: Mahasiswa Sistem Informasi
 Institusi: Universitas Buana Perjuangan Karawang
 Fokus: Berkontribusi dalam perancangan skema database, normalisasi data, dan analisis awal kebutuhan data untuk fitur-fitur aplikasi.
+
 Farid Firdaus
 
 Peran Kontribusi: Pengelolaan Konten Database & Pengujian Modul
 Status: Mahasiswa Sistem Informasi
 Institusi: Universitas Buana Perjuangan Karawang
 Fokus: Membantu dalam pengisian data awal (seeding) ke dalam database, serta melakukan pengujian fungsional pada modul-modul spesifik untuk memastikan integritas data.
+
 Rahma Khoirunnisa
 
 Peran Kontribusi: Dokumentasi Proyek & Riset Pengguna
