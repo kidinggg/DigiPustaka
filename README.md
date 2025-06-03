@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/images/logo_digipustaka.png" alt="Logo DigiPustaka" width="150"/>
+  <img src="static/images/logo.png" alt="Logo DigiPustaka" width="150"/>
 </p>
 
 <h1 align="center">📚 DigiPustaka - Sistem Informasi Perpustakaan Digital 💻</h1>
@@ -48,19 +48,20 @@
 ### Halaman Utama
 
 <p align="center">
-  <img src="assets/images/beranda.jpg" alt="Halaman Utama" width="700"/>
+  <img src="assets/images/beranda.png" alt="Beranda" width="350"/>
+  <img src="assets/images/beranda_2.png.png" alt="Beranda" width="350"/>
 </p>
 
 ### Katalog Buku Digital
 
 <p align="center">
-  <img src="assets/images/katalog_buku_digital.jpg" alt="Katalog Buku Digital" width="700"/>
+  <img src="assets/images/katalog_buku_digital.png" alt="Katalog Buku Digital" width="700"/>
 </p>
 
 ### Detail Buku
 
 <p align="center">
-  <img src="assets/images/detail_buku.jpg" alt="Detail Buku" width="700"/>
+  <img src="assets/images/detail_buku.png" alt="Detail Buku" width="700"/>
 </p>
 
 ### Dashboard Anggota
