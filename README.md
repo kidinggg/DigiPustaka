@@ -164,6 +164,7 @@ python app.py
     * **Institusi**: Universitas Buana Perjuangan Karawang
     * **Peran**: Full Stack Developer: Backend, Frontend, Database, Integrasi Fitur, testing
     * **Email**: [zackyputra1905@gmail.com](mailto:zackyputra1905@gmail.com)
+    * **Email**: [si23.zackysetyawan@mhs.ubpkarawang.ac.id](mailto:si23.zackysetyawan@mhs.ubpkarawang.ac.id)
     * **GitHub**: [@kidinggg](https://github.com/kidinggg)
 
 ---
