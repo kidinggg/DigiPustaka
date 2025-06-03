@@ -1,0 +1,52 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ title }} - Admin Digi Pustaka{% endblock %}
+
+{% block head_extra %}
+<style>
+    /* Styling spesifik untuk edit_fine jika diperlukan */
+    .loan-info { 
+        background-color: #e9ecef; padding: 15px; border-radius: 5px; margin-bottom: 20px; 
+    }
+    .loan-info p { margin: 5px 0; }
+    .loan-info strong { color: #0056b3; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-form-container">
+    <h2>{{ title }}</h2>
+
+    {% if loan %}
+        <div class="loan-info">
+            <p><strong>ID Peminjaman:</strong> {{ loan.loan_id }}</p>
+            <p><strong>Peminjam:</strong> {{ loan.nama_peminjam }}</p>
+            <p><strong>Buku:</strong> {{ loan.judul_buku }}</p>
+            <p><strong>Tanggal Pinjam:</strong> {{ loan.tanggal_pinjam.split(' ')[0] if loan.tanggal_pinjam else '-' }}</p>
+            <p><strong>Tanggal Jatuh Tempo:</strong> {{ loan.tanggal_jatuh_tempo.split(' ')[0] if loan.tanggal_jatuh_tempo else '-' }}</p>
+            <p><strong>Tanggal Kembali:</strong> {{ loan.tanggal_kembali.split(' ')[0] if loan.tanggal_kembali else '-' }}</p>
+            <p><strong>Status Peminjaman:</strong> <span class="status-{{ loan.status_pinjaman.lower().replace(' ', '_').replace('-', '_') }}">{{ loan.status_pinjaman.replace('_', ' ').capitalize() }}</span></p>
+            <p><strong>Denda Saat Ini (Rp):</strong> {{ "{:,.0f}".format(loan.denda) if loan.denda is not none else '0' }}</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_edit_fine', loan_id=loan.loan_id, user_id=user_id_for_back) }}">
+            <div class="form-group">
+                <label for="denda_baru">Masukkan Jumlah Denda Baru (Rp):</label>
+                <input type="number" id="denda_baru" name="denda_baru" value="{{ request.form.denda_baru or loan.denda or 0 }}" min="0" required>
+            </div>
+            <div>
+                <button type="submit" class="btn form-submit-btn btn-warning">Update Denda</button>
+            </div>
+        </form>
+    {% else %}
+        <p>Data peminjaman tidak ditemukan.</p>
+    {% endif %}
+    <div class="back-link-container" style="text-align:center; margin-top:20px;">
+        {% if user_id_for_back %}
+             <a href="{{ url_for('admin_user_detail', user_id=user_id_for_back) }}" class="btn btn-secondary btn-inline" style="background-color:#6c757d;">Kembali ke Detail Pengguna</a>
+        {% else %}
+             <a href="{{ url_for('admin_active_loans') }}" class="btn btn-secondary btn-inline" style="background-color:#6c757d;">Kembali ke Peminjaman Aktif</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

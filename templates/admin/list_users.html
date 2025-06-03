@@ -1,0 +1,70 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ title }} - Admin Digi Pustaka{% endblock %}
+
+{% block content %}
+<div class="admin-content-area">
+    <h2>{{ title }}</h2>
+
+    {% if users %}
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID User</th>
+                        <th>Nama Lengkap</th>
+                        <th>Email</th>
+                        <th>No. Anggota</th>
+                        <th>Role</th>
+                        <th>Status Akun</th>
+                        <th>Tgl Daftar</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_item in users %}
+                    <tr>
+                        <td>{{ user_item.user_id }}</td>
+                        <td>{{ user_item.nama_lengkap }}</td>
+                        <td>{{ user_item.email }}</td>
+                        <td>{{ user_item.nomor_anggota }}</td>
+                        <td>{{ user_item.role.capitalize() }}</td>
+                        <td>
+                            {% if user_item.is_active == 1 %}
+                                <span class="status-aktif">Aktif</span>
+                            {% else %}
+                                <span class="status-nonaktif">Tidak Aktif</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ user_item.created_at.split(' ')[0] if user_item.created_at else '-'}}</td>
+                        <td>
+                            <a href="{{ url_for('admin_user_detail', user_id=user_item.user_id) }}" class="actions-btn detail-btn">Detail</a>
+                            {% if user_item.user_id != g.user.user_id %}
+                                <form action="{{ url_for('admin_toggle_user_role', user_id=user_item.user_id) }}" method="POST" style="display:inline;">
+                                    {% if user_item.role == 'user' %}
+                                        <button type="submit" class="role-btn role-admin" title="Jadikan Admin">Jadikan Admin</button>
+                                    {% else %}
+                                        <button type="submit" class="role-btn role-user" title="Jadikan User Biasa">Jadikan User</button>
+                                    {% endif %}
+                                </form>
+                                <form action="{{ url_for('admin_toggle_user_active_status', user_id=user_item.user_id) }}" method="POST" style="display:inline;">
+                                    {% if user_item.is_active == 1 %}
+                                        <button type="submit" class="status-btn btn-nonaktifkan" title="Nonaktifkan Akun">Nonaktifkan</button>
+                                    {% else %}
+                                        <button type="submit" class="status-btn btn-aktifkan" title="Aktifkan Akun">Aktifkan</button>
+                                    {% endif %}
+                                </form>
+                            {% else %}
+                                (Anda)
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="no-users">Belum ada pengguna terdaftar.</p>
+    {% endif %}
+</div>
+{% endblock %}

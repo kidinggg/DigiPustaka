@@ -1,0 +1,67 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ title }} - Admin Digi Pustaka{% endblock %}
+
+{% block head_extra %}
+    {# Tambahkan CSS spesifik untuk tabel admin di sini jika belum ada di style.css utama #}
+    <style>
+        .admin-table-container { overflow-x: auto; margin-bottom: 20px;}
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 10px; text-align: left; vertical-align: middle; font-size: 0.9em;}
+        .admin-table th { background-color: #6c757d; color: white; }
+        .admin-table tr:nth-child(even) { background-color: #f9f9f9; }
+        .admin-table tr:hover { background-color: #f1f1f1; }
+        .actions .actions-btn { /* Sudah ada di style.css, pastikan konsisten */
+            margin-right: 5px;
+            padding: 5px 8px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-content-area"> 
+    <h2 class="page-title">{{ title }}</h2>
+
+    <div class="add-book-link" style="margin-bottom: 20px; text-align: right;">
+        <a href="{{ url_for('add_book') }}" class="btn btn-primary">Tambah Buku Baru</a>
+    </div>
+
+    {% if books %}
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Judul</th>
+                        <th>Pengarang</th>
+                        <th>Kategori</th>
+                        <th>Jenis</th>
+                        <th>Stok (Fisik)</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for book in books %}
+                    <tr>
+                        <td>{{ book.book_id }}</td>
+                        <td>{{ book.judul }}</td>
+                        <td>{{ book.pengarang if book.pengarang else '-' }}</td>
+                        <td>{{ book.nama_kategori if book.nama_kategori else 'Tidak Berkategori' }}</td>
+                        <td>{{ book.jenis_buku.capitalize() }}</td>
+                        <td>{{ book.stok_fisik if book.jenis_buku == 'fisik' else '-' }}</td>
+                        <td class="actions">
+                            <a href="{{ url_for('admin_edit_book', book_id=book.book_id) }}" class="actions-btn edit-btn">Edit</a>
+                            <form action="{{ url_for('admin_delete_book', book_id=book.book_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Anda yakin ingin menghapus buku ini? Ini juga akan menghapus data peminjaman terkait.');">
+                                <button type="submit" class="actions-btn delete-btn">Hapus</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="no-books">Belum ada buku yang ditambahkan.</p>
+    {% endif %}
+</div>
+{% endblock %}

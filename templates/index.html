@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Digi Pustaka</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    </head>
+<body>
+    <header class="header-main">
+        <div class="header-left">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Digi Pustaka" onerror="this.style.display='none'; this.parentElement.innerHTML='DigiPustaka';">
+            </div>
+            <div class="site-title-container">
+                <h1 class="site-title">Digi Pustaka</h1>
+                <p class="site-subtitle">Sistem Informasi Perpustakaan Digital</p>
+            </div>
+        </div>
+
+        <button class="nav-toggle" aria-label="menu" aria-expanded="false" aria-controls="mainNav">
+            <span class="hamburger"></span>
+        </button>
+        <nav class="main-nav" id="mainNav">
+            <ul> 
+                <li><a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' else '' }}">Beranda</a></li>
+                <li><a href="{{ url_for('books_catalog_physical') }}" class="{{ 'active' if request.endpoint == 'books_catalog_physical' else '' }}">Buku Fisik</a></li>
+                <li><a href="{{ url_for('books_catalog_digital') }}" class="{{ 'active' if request.endpoint == 'books_catalog_digital' else '' }}">Buku Digital</a></li>
+                {% if g.user %}
+                    {% if g.user.role == 'admin' %}
+                        <li><a href="{{ url_for('admin_dashboard') }}" class="admin-link {{ 'active' if 'admin' in request.endpoint else '' }}">Panel Admin</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' else '' }}">Dashboard</a></li>
+                    {% endif %}
+                    <li><a href="{{ url_for('logout') }}">Logout ({{ g.user.nama_lengkap.split(' ')[0] }})</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('register') }}" class="{{ 'active' if request.endpoint == 'register' else '' }}">Registrasi</a></li>
+                    <li><a href="{{ url_for('login') }}" class="{{ 'active' if request.endpoint == 'login' else '' }}">Login</a></li>
+                {% endif %}
+            </ul>
+             <form action="{{ url_for('books_catalog_physical') }}" method="get" class="nav-search-form">
+                <input type="text" name="search" placeholder="Cari buku..." value="{{ request.args.get('query', '') }}">
+                <button type="submit">Cari</button>
+            </form>
+        </nav>
+    </header>
+
+    <div class="hero-section">
+        <div class="hero-content">
+            <h2>Selamat Datang di Perpustakaan Digital Digi Pustaka</h2>
+            <p>Temukan ribuan koleksi buku digital dan fisik kami yang siap menemani hari-hari membaca Anda. Mudah, cepat, dan informatif.</p>
+            <a href="{{ url_for('books_catalog_physical') }}" class="cta-button">Jelajahi Koleksi Buku</a>
+        </div>
+    </div>
+
+    <div class="container"> 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <section class="statistics-section">
+            <h2 class="section-title">Statistik Digi Pustaka</h2>
+            <div class="stats-overview-container">
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_buku if total_buku is not none else '0' }}</div>
+                    <div class="stat-label">Total Koleksi Buku</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_anggota if total_anggota is not none else '0' }}</div>
+                    <div class="stat-label">Total Anggota Terdaftar</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_peminjaman_fisik_aktif if total_peminjaman_fisik_aktif is not none else '0' }}</div>
+                    <div class="stat-label">Peminjaman Aktif (Fisik)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_unduhan_digital if total_unduhan_digital is not none else '0' }}</div>
+                    <div class="stat-label">Total Unduhan (Digital)</div>
+                </div>
+            </div>
+        </section>
+
+        <h2 class="section-title">Koleksi Terbaru Kami</h2>
+        {% if recent_books %}
+            <div class="book-grid">
+                {% for book in recent_books %}
+                    <div class="book-card">
+                        <a href="{{ url_for('book_detail', book_id=book.book_id) }}" style="text-decoration:none; color:inherit;">
+                            <img src="{{ url_for('static', filename=book.cover_image_path if book.cover_image_path and book.cover_image_path != 'default_cover.png' else 'images/default_cover.png') }}" alt="Sampul {{ book.judul }}" class="cover" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_cover.png') }}';">
+                            <h3>{{ book.judul }}</h3>
+                        </a>
+                        <span class="book-type-indicator book-type-{{ book.jenis_buku.lower() if book.jenis_buku else 'unknown' }}">{{ book.jenis_buku.capitalize() if book.jenis_buku else 'N/A' }}</span>
+                        <p><strong>Pengarang:</strong> {{ book.pengarang if book.pengarang else '-' }}</p>
+                        <p class="category"><strong>Kategori:</strong> {{ book.nama_kategori if book.nama_kategori else 'Tidak Berkategori' }}</p>
+                        <a href="{{ url_for('book_detail', book_id=book.book_id) }}" class="details-link">Lihat Detail</a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="text-align:center;">Belum ada buku terbaru untuk ditampilkan.</p>
+        {% endif %}
+    </div>
+
+    <footer class="footer-main">
+        <p>&copy; {{ now.year if now else '2025' }} Digi Pustaka. Dibuat dengan Flask.</p>
+    </footer>
+
+    <script>
+        const navToggle = document.querySelector('.nav-toggle');
+        const mainNav = document.getElementById('mainNav');
+
+        if (navToggle && mainNav) {
+            navToggle.addEventListener('click', () => {
+                mainNav.classList.toggle('nav-open');
+                navToggle.classList.toggle('nav-open');
+                
+                const isExpanded = mainNav.classList.contains('nav-open');
+                navToggle.setAttribute('aria-expanded', isExpanded);
+            });
+        }
+    </script>
+</body>
+</html>

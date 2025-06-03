@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Digi Pustaka</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
+    </head>
+<body>
+    <header class="header-main no-print"> <div class="header-left">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Digi Pustaka" onerror="this.style.display='none'; this.parentElement.innerHTML='DigiPustaka';">
+            </div>
+            <div class="site-title-container">
+                <h1 class="site-title">Digi Pustaka</h1>
+                <p class="site-subtitle">Sistem Informasi Perpustakaan Digital</p>
+            </div>
+        </div>
+
+        <button class="nav-toggle" aria-label="menu" aria-expanded="false" aria-controls="mainNav">
+            <span class="hamburger"></span>
+        </button>
+
+        <nav class="main-nav" id="mainNav">
+            <ul> 
+                <li><a href="{{ url_for('index') }}">Beranda</a></li>
+                <li><a href="{{ url_for('books_catalog_physical') }}">Buku Fisik</a></li>
+                <li><a href="{{ url_for('books_catalog_digital') }}">Buku Digital</a></li>
+                {% if g.user %}
+                    {% if g.user.role == 'admin' %}
+                        <li><a href="{{ url_for('admin_dashboard') }}" class="admin-link">Panel Admin</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li>
+                    {% endif %}
+                    <li><a href="{{ url_for('logout') }}">Logout ({{ g.user.nama_lengkap.split(' ')[0] }})</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('register') }}">Registrasi</a></li>
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    <div class="action-buttons-container">
+        <button onclick="window.print()" class="btn print-button">Cetak Struk</button>
+        <a href="{{ url_for('dashboard') }}" class="btn back-to-dashboard-btn">Kembali ke Dashboard</a>
+    </div>
+
+    <div class="receipt-container">
+        <div class="receipt-header">
+            <p class="library-name">Digi Pustaka</p>
+            <h2>Struk Peminjaman Buku</h2>
+            {% if loan and loan.tanggal_pinjam %}
+            <p class="date-time">Tanggal Cetak: {{ now.strftime('%d-%m-%Y %H:%M:%S') }}</p>
+            {% endif %}
+        </div>
+
+        {% if loan %}
+        <div class="receipt-body">
+            <table>
+                <tr>
+                    <td>ID Pinjam:</td>
+                    <td>{{ loan.loan_id }}</td>
+                </tr>
+                <tr>
+                    <td>Nama Peminjam:</td>
+                    <td>{{ loan.nama_peminjam }}</td>
+                </tr>
+                <tr>
+                    <td>No. Anggota:</td>
+                    <td>{{ loan.nomor_anggota }}</td>
+                </tr>
+                <tr>
+                    <td>Judul Buku:</td>
+                    <td>{{ loan.judul_buku }}</td>
+                </tr>
+                <tr>
+                    <td>Tanggal Pinjam:</td>
+                    <td>{{ loan.tanggal_pinjam.split(' ')[0] if loan.tanggal_pinjam else '-' }}</td>
+                </tr>
+                <tr>
+                    <td>Jatuh Tempo:</td>
+                    <td>{{ loan.tanggal_jatuh_tempo.split(' ')[0] if loan.tanggal_jatuh_tempo else '-' }}</td>
+                </tr>
+            </table>
+            
+            <div style="text-align:center;">
+                <div id="qrcode-receipt"></div>
+            </div>
+            <script type="text/javascript">
+                var loanIdForQR = "{{ loan.loan_id }}";
+                if (loanIdForQR) {
+                    new QRCode(document.getElementById("qrcode-receipt"), {
+                        text: "LOAN_ID:" + loanIdForQR, 
+                        width: 120,
+                        height: 120,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.M 
+                    });
+                }
+            </script>
+        </div>
+        <div class="receipt-footer">
+            <p>Terima kasih telah meminjam buku di Digi Pustaka.</p>
+            <p>Harap kembalikan buku tepat waktu.</p>
+        </div>
+        {% else %}
+            <p style="text-align:center; color:red;">Data peminjaman tidak ditemukan.</p>
+        {% endif %}
+    </div>
+
+    <footer class="footer-main no-print"> <p>&copy; {{ now.year if now else '2025' }} Digi Pustaka. Dibuat dengan Flask.</p>
+    </footer>
+
+    <script>
+        const navToggle = document.querySelector('.nav-toggle');
+        const mainNav = document.getElementById('mainNav');
+
+        if (navToggle && mainNav) {
+            navToggle.addEventListener('click', () => {
+                mainNav.classList.toggle('nav-open');
+                navToggle.classList.toggle('nav-open');
+                
+                const isExpanded = mainNav.classList.contains('nav-open');
+                navToggle.setAttribute('aria-expanded', isExpanded);
+            });
+        }
+    </script>
+</body>
+</html>

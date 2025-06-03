@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Digi Pustaka</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #0056b3; } /* Warna biru untuk judul */
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button[type="submit"] {
+            background-color: #007bff; /* Warna biru untuk tombol */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        button[type="submit"]:hover {
+            background-color: #0056b3; /* Warna biru lebih gelap saat hover */
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .alert-danger { /* Untuk pesan error */
+            color: #a94442;
+            background-color: #f2dede;
+            border-color: #ebccd1;
+        }
+        .alert-success { /* Untuk pesan sukses */
+            color: #3c763d;
+            background-color: #dff0d8;
+            border-color: #d6e9c6;
+        }
+        .login-link { text-align: center; margin-top: 15px; }
+        .login-link a { color: #007bff; text-decoration: none; }
+        .login-link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ title if title else 'Registrasi Anggota' }}</h1> {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('register') }}">
+            <div>
+                <label for="nama_lengkap">Nama Lengkap:</label>
+                <input type="text" id="nama_lengkap" name="nama_lengkap" required placeholder="Masukkan nama lengkap">
+            </div>
+            <div>
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required placeholder="Masukkan email">
+            </div>
+            <div>
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required placeholder="Masukkan password">
+            </div>
+            <div>
+                <label for="konfirmasi_password">Konfirmasi Password:</label>
+                <input type="password" id="konfirmasi_password" name="konfirmasi_password" required placeholder="Ulangi password">
+            </div>
+
+            <div>
+                <label for="alamat">Alamat: (Opsional)</label>
+                <textarea id="alamat" name="alamat" rows="3" placeholder="Masukkan alamat lengkap Anda" style="width: calc(100% - 0px); padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: sans-serif;"></textarea>
+            </div>
+            <div>
+                <label for="nomor_telepon">Nomor Telepon: (Opsional)</label>
+                <input type="tel" id="nomor_telepon" name="nomor_telepon" placeholder="Contoh: 081234567890" style="width: calc(100% - 0px); padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-family: sans-serif;">
+            </div>
+            <div>
+                <button type="submit">Daftar</button>
+            </div>
+        </form>
+        <div class="login-link">
+            <p>Sudah punya akun? <a href="{{ url_for('login') }}">Login di sini</a></p>
+        </div>
+    </div>
+</body>
+</html>

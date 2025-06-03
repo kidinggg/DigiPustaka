@@ -1,0 +1,37 @@
+# Python bytecode
+*.py[cod]
+__pycache__/
+*.so
+
+# Virtual environment
+venv/
+.venv/
+ENV/
+env/
+*/venv/
+*/.venv/
+*/ENV/
+*/env/
+
+# Database files
+*.sqlite3
+*.db
+digipustaka.db # Jika nama file database Anda persis ini
+instance/digipustaka.db # Jika Anda menggunakan folder instance untuk database
+
+# File IDE dan editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# File spesifik OS
+.DS_Store
+Thumbs.db
+
+# File sensitif (jangan pernah unggah file .env aktual)
+.env
+*.env
+
+# File log
+*.log

@@ -1,0 +1,115 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}{{ title }} - Admin Digi Pustaka{% endblock %}
+
+{% block content %}
+<div class="admin-form-container">
+    <h2>{{ title }}</h2>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="judul">Judul Buku</label>
+            <input type="text" id="judul" name="judul" value="{{ request.form.judul or book.judul }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="pengarang">Pengarang</label>
+            <input type="text" id="pengarang" name="pengarang" value="{{ request.form.pengarang or book.pengarang }}">
+        </div>
+
+        <div class="form-group">
+            <label for="category_id">Kategori</label>
+            <select id="category_id" name="category_id" onchange="toggleNewCategoryInputEdit(this.value)">
+                <option value="">-- Pilih Kategori --</option>
+                {% if categories %}
+                    {% for cat in categories %}
+                        <option value="{{ cat.category_id }}" 
+                                {% if (request.form.category_id and request.form.category_id == cat.category_id|string) or (not request.form.category_id and book.category_id == cat.category_id) %}selected{% endif %}>
+                            {{ cat.nama_kategori }}
+                        </option>
+                    {% endfor %}
+                {% endif %}
+                <option value="new" {% if request.form.category_id == 'new' %}selected{% endif %}>-- Tambah Kategori Baru --</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="new_category_group_edit" style="display: {% if request.form.category_id == 'new' %}block{% else %}none{% endif %};">
+            <label for="kategori_nama_baru">Nama Kategori Baru</label>
+            <input type="text" id="kategori_nama_baru" name="kategori_nama_baru" value="{{ request.form.kategori_nama_baru or '' }}">
+            <small>Isi hanya jika Anda memilih "-- Tambah Kategori Baru --" di atas.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="jenis_buku">Jenis Buku</label>
+            <select id="jenis_buku" name="jenis_buku" required>
+                <option value="fisik" {% if (request.form.jenis_buku or book.jenis_buku) == 'fisik' %}selected{% endif %}>Fisik</option>
+                <option value="digital" {% if (request.form.jenis_buku or book.jenis_buku) == 'digital' %}selected{% endif %}>Digital</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="stok_fisik_group_edit" style="display: {% if (request.form.jenis_buku or book.jenis_buku) == 'fisik' %}block{% else %}none{% endif %};">
+            <label for="stok_fisik">Stok Buku Fisik</label>
+            <input type="number" id="stok_fisik" name="stok_fisik" value="{{ request.form.stok_fisik or book.stok_fisik or 0 }}" min="0">
+        </div>
+        
+        <div class="form-group">
+            <label for="ringkasan">Ringkasan</label>
+            <textarea id="ringkasan" name="ringkasan" rows="4">{{ request.form.ringkasan or book.ringkasan }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="cover_image">Ganti Sampul Buku (Opsional)</label>
+            <input type="file" id="cover_image" name="cover_image" accept="image/*">
+            {% if book.cover_image_path %}
+                <p class="current-file-info">Sampul saat ini: 
+                    <a href="{{ url_for('static', filename=book.cover_image_path) }}" target="_blank">{{ book.cover_image_path.split('/')[-1] }}</a><br>
+                    <img src="{{ url_for('static', filename=book.cover_image_path) }}" alt="Sampul saat ini" style="max-width: 100px; max-height: 150px; margin-top: 5px; border:1px solid #ddd;">
+                </p>
+            {% endif %}
+        </div>
+
+        <div class="form-group" id="file_ebook_group_edit" style="display: {% if (request.form.jenis_buku or book.jenis_buku) == 'digital' %}block{% else %}none{% endif %};">
+            <label for="file_ebook">Ganti File eBook (Opsional)</label>
+            <input type="file" id="file_ebook" name="file_ebook" accept=".pdf,.epub,.mobi">
+            {% if book.file_ebook_path %}
+                <p class="current-file-info">eBook saat ini: {{ book.file_ebook_path.split('/')[-1] }}</p>
+            {% endif %}
+            <small>Kosongkan jika tidak ingin mengganti. Wajib ada jika jenis buku adalah Digital.</small>
+        </div>
+        
+        <button type="submit" class="btn form-submit-btn btn-warning">Simpan Perubahan</button>
+        <a href="{{ url_for('admin_list_books') }}" class="btn btn-secondary form-submit-btn btn-inline" style="background-color:#6c757d; margin-top:10px; width:auto;">Batal</a>
+    </form>
+</div>
+
+<script>
+    document.getElementById('jenis_buku').addEventListener('change', function() {
+        var stokFisikGroup = document.getElementById('stok_fisik_group_edit');
+        var fileEbookGroup = document.getElementById('file_ebook_group_edit');
+        if (this.value === 'fisik') {
+            stokFisikGroup.style.display = 'block';
+            fileEbookGroup.style.display = 'none';
+        } else if (this.value === 'digital') {
+            stokFisikGroup.style.display = 'none';
+            fileEbookGroup.style.display = 'block';
+        } else {
+            stokFisikGroup.style.display = 'none';
+            fileEbookGroup.style.display = 'none';
+        }
+    });
+    document.getElementById('jenis_buku').dispatchEvent(new Event('change'));
+
+    function toggleNewCategoryInputEdit(selectedValue) {
+        var newCategoryGroup = document.getElementById('new_category_group_edit');
+        var newCategoryInput = document.getElementById('kategori_nama_baru');
+        if (selectedValue === 'new') {
+            newCategoryGroup.style.display = 'block';
+        } else {
+            newCategoryGroup.style.display = 'none';
+            newCategoryInput.value = ''; 
+        }
+    }
+    var initialCategoryValueEdit = document.getElementById('category_id').value;
+    toggleNewCategoryInputEdit(initialCategoryValueEdit);
+</script>
+{% endblock %}

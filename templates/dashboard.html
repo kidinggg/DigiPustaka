@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Digi Pustaka</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header-main">
+        <div class="header-left">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Digi Pustaka" onerror="this.style.display='none'; this.parentElement.innerHTML='DigiPustaka';">
+            </div>
+            <div class="site-title-container">
+                <h1 class="site-title">Digi Pustaka</h1>
+                <p class="site-subtitle">Sistem Informasi Perpustakaan Digital</p>
+            </div>
+        </div>
+
+        <button class="nav-toggle" aria-label="menu" aria-expanded="false" aria-controls="mainNav">
+            <span class="hamburger"></span>
+        </button>
+        <nav class="main-nav" id="mainNav"> <ul> 
+                <li><a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' else '' }}">Beranda</a></li>
+                <li><a href="{{ url_for('books_catalog_physical') }}" class="{{ 'active' if request.endpoint == 'books_catalog_physical' else '' }}">Buku Fisik</a></li>
+                <li><a href="{{ url_for('books_catalog_digital') }}" class="{{ 'active' if request.endpoint == 'books_catalog_digital' else '' }}">Buku Digital</a></li>
+                {% if g.user %}
+                    {% if g.user.role == 'admin' %}
+                        <li><a href="{{ url_for('admin_dashboard') }}" class="admin-link {{ 'active' if 'admin' in request.endpoint else '' }}">Panel Admin</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li> {# Tandai Dashboard aktif di sini #}
+                    {% endif %}
+                    <li><a href="{{ url_for('logout') }}">Logout ({{ g.user.nama_lengkap.split(' ')[0] }})</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('register') }}" class="{{ 'active' if request.endpoint == 'register' else '' }}">Registrasi</a></li>
+                    <li><a href="{{ url_for('login') }}" class="{{ 'active' if request.endpoint == 'login' else '' }}">Login</a></li>
+                {% endif %}
+            </ul>
+            </nav>
+    </header>
+
+    <div class="container page-content-container"> <h2 class="page-title">{{ title }}</h2> {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if g.user %}
+        <div class="user-profile">
+            <div class="profile-pic-container">
+                {% if g.user.foto_profil_path %}
+                    <img src="{{ url_for('static', filename=g.user.foto_profil_path) }}" alt="Foto Profil" class="profile-pic">
+                {% else %}
+                    <img src="{{ url_for('static', filename='images/default_profile.png') }}" alt="Foto Profil Default" class="profile-pic" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_profile.png') }}';">
+                {% endif %}
+            </div>
+            <div class="profile-info">
+                <h3>Profil Anggota</h3>
+                <p><strong>Nama:</strong> {{ g.user.nama_lengkap }}</p>
+                <p><strong>Nomor Anggota:</strong> {{ g.user.nomor_anggota }}</p>
+                <p><strong>Email:</strong> {{ g.user.email }}</p>
+                <p><strong>Role:</strong> {{ g.user.role.capitalize() }}</p>
+                <div class="profile-actions">
+                    <a href="{{ url_for('member_card') }}" class="member-card-link">Lihat Kartu Anggota</a>
+                    <a href="{{ url_for('edit_profile') }}" class="edit-profile-link">Edit Profil</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="due-notifications">
+            {% if overdue_books %}
+                <div class="notification-box notification-overdue">
+                    <h4>PERINGATAN! Buku Terlambat Dikembalikan:</h4>
+                    <ul>
+                        {% for book in overdue_books %}
+                            <li>
+                                <a href="{{ url_for('book_detail', book_id=book.book_id) }}">{{ book.judul }}</a> 
+                                - Jatuh tempo: {{ book.jatuh_tempo }} (Terlambat {{ book.hari_terlambat }} hari)
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {% if upcoming_due_books %}
+                <div class="notification-box notification-upcoming">
+                    <h4>PENGINGAT! Buku Akan Segera Jatuh Tempo:</h4>
+                    <ul>
+                        {% for book in upcoming_due_books %}
+                            <li>
+                                <a href="{{ url_for('book_detail', book_id=book.book_id) }}">{{ book.judul }}</a> 
+                                - Jatuh tempo: {{ book.jatuh_tempo }} 
+                                {% if book.sisa_hari == 0 %}
+                                    (Hari Ini!)
+                                {% else %}
+                                    (dalam {{ book.sisa_hari }} hari)
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+        
+        <h3 class="section-subtitle">Histori Peminjaman Anda</h3> {% if loan_history %}
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="user-dashboard-th">No.</th> <th class="user-dashboard-th">Judul Buku</th>
+                            <th class="user-dashboard-th">Tipe</th>
+                            <th class="user-dashboard-th">Tgl Pinjam</th>
+                            <th class="user-dashboard-th">Tgl Jatuh Tempo</th>
+                            <th class="user-dashboard-th">Tgl Kembali</th>
+                            <th class="user-dashboard-th">Status</th>
+                            <th class="user-dashboard-th">Denda (Rp)</th>
+                            <th class="user-dashboard-th">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in loan_history %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><a href="{{ url_for('book_detail', book_id=loan.book_id) }}">{{ loan.judul_buku }}</a></td>
+                            <td>{{ loan.tipe_pinjaman.capitalize() }}</td>
+                            <td>{{ loan.tanggal_pinjam.split(' ')[0] if loan.tanggal_pinjam else '-' }}</td>
+                            <td>{{ loan.tanggal_jatuh_tempo.split(' ')[0] if loan.tanggal_jatuh_tempo else '-' }}</td>
+                            <td>{{ loan.tanggal_kembali.split(' ')[0] if loan.tanggal_kembali else '-' }}</td>
+                            <td class="status-{{ loan.status_pinjaman.lower().replace(' ', '_').replace('-', '_') }}">{{ loan.status_pinjaman.replace('_', ' ').capitalize() }}</td>
+                            <td>{{ "{:,.0f}".format(loan.denda) if loan.denda is not none else '0' }}</td>
+                            <td>
+                                {% if loan.tipe_pinjaman == 'fisik' and loan.status_pinjaman == 'dipinjam' %}
+                                    <a href="{{ url_for('loan_receipt', loan_id=loan.loan_id) }}" class="action-link">Lihat Struk</a>
+                                {% elif loan.tipe_pinjaman == 'digital' and loan.status_pinjaman == 'diunduh' %}
+                                    <a href="{{ url_for('borrow_book', book_id=loan.book_id) }}" class="action-link">Unduh Lagi</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if total_unpaid_fines > 0 %}
+            <div class="fines-info">
+                <strong>Total Denda Belum Dibayar: Rp {{ "{:,.0f}".format(total_unpaid_fines) }}</strong>
+                <p>(Silakan hubungi petugas perpustakaan untuk pembayaran denda)</p>
+            </div>
+            {% endif %}
+        {% else %}
+            <p class="no-history">Anda belum memiliki riwayat peminjaman.</p>
+        {% endif %}
+    </div>
+
+    <footer class="footer-main">
+        <p>&copy; {{ now.year if now else '2025' }} Digi Pustaka. Dibuat dengan Flask.</p>
+    </footer>
+
+    <script>
+        // Script untuk Navigasi Mobile
+        const navToggle = document.querySelector('.nav-toggle');
+        const mainNav = document.getElementById('mainNav');
+
+        if (navToggle && mainNav) {
+            navToggle.addEventListener('click', () => {
+                mainNav.classList.toggle('nav-open');
+                navToggle.classList.toggle('nav-open');
+                
+                const isExpanded = mainNav.classList.contains('nav-open');
+                navToggle.setAttribute('aria-expanded', isExpanded);
+            });
+        }
+    </script>
+</body>
+</html>

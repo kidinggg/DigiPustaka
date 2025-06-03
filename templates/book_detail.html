@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Detail Buku - Digi Pustaka</title>
+    {# Link ke CSS eksternal tetap ada untuk styling global #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script> {# Menggunakan CDN untuk PDF.js #}
+    <style>
+        /* Styling global dari style.css akan berlaku, ini adalah override atau styling spesifik */
+        /* Anda bisa meminimalkan CSS di sini jika sebagian besar sudah dicakup oleh style.css */
+
+        /* Styling untuk header dan navigasi agar konsisten dengan halaman lain (jika belum semua di style.css) */
+        /* Jika semua styling header & nav sudah ada di style.css, bagian ini bisa dihapus dari sini */
+        .header-main {
+            background-color: #00A6FF; 
+            color: white;
+            padding: 10px 25px; 
+            display: flex;
+            align-items: center; 
+        }
+        .header-left { display: flex; align-items: center; }
+        .header-main .logo-container { margin-right: 15px; }
+        .header-main .logo-container img { height: 55px; width: auto; vertical-align: middle; }
+        .header-main .site-title-container { display: flex; flex-direction: column; justify-content: center; }
+        .header-main .site-title { font-size: 1.9em; font-weight: bold; margin: 0; line-height: 1.2; }
+        .header-main .site-subtitle { font-size: 0.95em; margin: 0; font-weight: 300; line-height: 1.2; }
+        nav.main-nav { margin-left: auto; }
+        nav.main-nav ul { list-style-type: none; margin: 0; padding: 0; display: flex; align-items: center; }
+        nav.main-nav ul li { margin-left: 5px; }
+        nav.main-nav ul li:first-child { margin-left: 0; }
+        nav.main-nav a {
+            color: white; text-decoration: none; font-size: 0.95em; 
+            padding: 8px 10px; border-radius: 4px; 
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+            font-weight: 500; display: block; 
+        }
+        nav.main-nav a:hover, nav.main-nav a.active { background-color: #007FBF; text-decoration: none; }
+        .admin-link { background-color: #ffc107 !important; color: #212529 !important; }
+        .admin-link:hover { background-color: #e0a800 !important; }
+        /* Akhir styling header & nav */
+
+        /* Styling spesifik untuk konten halaman detail buku (mirip versi awal Anda) */
+        .page-content-container.book-detail-page {
+            max-width: 850px; /* Lebar kontainer detail buku */
+            margin: 25px auto; /* Jarak dari header */
+            background: #fff; 
+            padding: 25px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h2.book-title-main { /* Judul buku utama di atas layout */
+            font-size: 2.2em;
+            color: #0056b3; /* Warna biru untuk judul */
+            text-align: left; /* Judul rata kiri */
+            margin-top: 0; /* Rapatkan ke atas kontainer */
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .book-detail-layout { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 25px; /* Jarak antara cover dan info */
+        }
+        .book-cover-container { 
+            flex: 0 0 280px; /* Lebar cover buku, jangan terlalu besar */
+            text-align: center;
+        }
+        .book-cover-container img {
+            width: 100%;
+            max-width: 280px; /* Batasi lebar maksimum gambar */
+            height: auto;
+            max-height: 400px; 
+            border-radius: 6px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            background-color: #f0f0f0; 
+        }
+        .book-info-container { 
+            flex: 1; 
+            min-width: 300px; 
+            padding-left: 15px; /* Beri sedikit padding kiri jika ada gap */
+        }
+        /* Hapus h2.book-title dari sini karena sudah ada .book-title-main */
+        .book-info-container p { 
+            margin-bottom: 10px; 
+            line-height: 1.6; 
+            color: #333; 
+            font-size: 1em; /* Ukuran font standar untuk info */
+        }
+        .book-info-container strong { 
+            color: #000; 
+            font-weight: 600;
+            margin-right: 5px;
+        }
+        .book-info-container .book-stock { font-weight: bold; }
+        .book-info-container .book-stock.available { color: #28a745; } 
+        .book-info-container .book-stock.unavailable { color: #dc3545; } 
+
+        .synopsis { 
+            margin-top: 15px; 
+            padding-top: 15px; 
+            border-top: 1px solid #e8e8e8; 
+        }
+        .synopsis h3 { 
+            margin-top: 0;
+            margin-bottom: 8px; 
+            font-size: 1.3em; 
+            color: #0056b3; 
+            text-align: left; 
+        }
+        .synopsis p {
+            text-align: left; /* Ringkasan rata kiri */
+            font-size: 0.95em;
+            color: #454545;
+            line-height: 1.7;
+        }
+
+        .book-actions { 
+            margin-top: 20px; 
+            padding-top: 20px;
+            border-top: 1px solid #e8e8e8;
+            text-align: left; /* Tombol aksi rata kiri */
+        }
+        .book-actions .btn { /* Ini akan menargetkan semua tombol di .book-actions */
+            display: inline-block; padding: 9px 16px; margin-right: 10px; /* Padding disesuaikan */
+            margin-bottom: 10px; border-radius: 5px; text-decoration: none;
+            font-size: 0.9em; /* Font size tombol disesuaikan */
+            cursor: pointer; border: none; text-align: center;
+            font-weight: 500;
+        }
+        .btn-borrow { background-color: #28a745; color: white; } /* Tombol Pinjam/Unduh sekarang hijau */
+        .btn-borrow:hover { background-color: #218838; }
+        .btn-borrow[disabled] { background-color: #b0b0b0; cursor: not-allowed;}
+        .btn-preview { background-color: #ffc107; color: #212529; } /* Tombol Preview kuning */
+        .btn-preview:hover { background-color: #e0a800; }
+                
+        .back-button-container { 
+            text-align: center; 
+            margin-top: 30px;
+            margin-bottom: 20px; 
+        }
+        .back-button-container .btn-back { /* Spesifik untuk tombol kembali jika perlu style berbeda */
+            background-color: #6c757d; 
+            color: white;
+            padding: 10px 25px;
+            /* Tambahkan properti lain dari .btn jika ingin sama persis */
+            display: inline-block; border-radius: 5px; text-decoration: none;
+            font-size: 0.95em; cursor: pointer; border: none; text-align: center;
+            font-weight: 500;
+        }
+        .back-button-container .btn-back:hover { 
+            background-color: #5a6268; 
+        }
+        .alert {
+            padding: 15px; margin: 0 auto 20px auto; border: 1px solid transparent;
+            border-radius: 4px; max-width: 100%; /* Alert bisa full width di dalam container */
+        }
+        .footer-main {
+            text-align: center; padding: 20px; background-color: #343a40; 
+            color: #adb5bd; margin-top: 40px; font-size: 0.9em;
+        }
+        .footer-main p { margin: 5px 0; }
+
+        /* Styling untuk Modal Preview PDF */
+        .modal-pdf-preview {
+            display: none; 
+            position: fixed;
+            z-index: 1050; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; 
+            background-color: rgba(0,0,0,0.6); 
+        }
+        .modal-pdf-content {
+            background-color: #fefefe;
+            margin: 2% auto; 
+            padding: 15px; 
+            border: 1px solid #888;
+            width: 85%; 
+            max-width: 850px; 
+            height: 94vh; 
+            border-radius: 8px;
+            position: relative;
+            display: flex; 
+            flex-direction: column;
+            box-sizing: border-box; 
+        }
+        .modal-header-pdf {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px; 
+            border-bottom: 1px solid #eee;
+            margin-bottom: 10px; 
+            flex-shrink: 0; 
+        }
+        .modal-header-pdf h4 {
+            margin: 0;
+            font-size: 1.1em; 
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis; 
+        }
+        .close-modal-btn {
+            color: #aaa;
+            font-size: 26px; 
+            font-weight: bold;
+            background: none;
+            border: none;
+            padding: 0 5px;
+            line-height: 1;
+        }
+        .close-modal-btn:hover,
+        .close-modal-btn:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .pdf-viewer-area { 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            text-align: center; 
+            background-color: #e8e8e8; 
+            margin-bottom: 8px; 
+            border-radius: 4px;
+        }
+        #pdf-viewer-canvas {
+            border: 1px solid #bbb; 
+            display: block; 
+            margin: 5px auto; 
+        }
+        .pdf-preview-controls {
+            text-align: center;
+            padding-top: 8px; 
+            flex-shrink: 0; 
+        }
+        .pdf-preview-controls button {
+            padding: 6px 12px; 
+            margin: 0 4px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em; 
+        }
+        .pdf-preview-controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .pdf-preview-controls span {
+            font-size: 0.85em; 
+            color: #555;
+            vertical-align: middle;
+            margin: 0 8px;
+        }
+        .preview-limit-note {
+            text-align: center;
+            font-size: 0.8em; 
+            color: #d9534f; 
+            margin-top: 4px;
+            flex-shrink: 0;
+        }
+
+        /* Media Query untuk Mobile */
+        @media (max-width: 768px) {
+            .book-detail-layout {
+                gap: 15px; /* Kurangi gap di mobile */
+            }
+            .book-cover-container {
+                flex: 0 0 100%; /* Cover full width di mobile */
+                max-width: 200px; /* Batasi agar tidak terlalu besar */
+                margin: 0 auto 15px; /* Pusatkan cover */
+            }
+            .book-info-container {
+                padding-left: 0; /* Hapus padding kiri di mobile */
+            }
+            h2.book-title-main {
+                font-size: 1.8em; /* Perkecil judul utama */
+            }
+            .book-actions .btn {
+                font-size: 0.85em; /* Perkecil font tombol aksi */
+                padding: 8px 14px;
+            }
+
+            .modal-pdf-content {
+                width: 95%; /* Modal lebih lebar di mobile */
+                height: 90vh; /* Tinggi modal bisa sedikit dikurangi jika perlu */
+                margin: 5% auto; /* Margin atas/bawah disesuaikan */
+                padding: 10px; /* Padding modal dikurangi */
+            }
+            .modal-header-pdf h4 {
+                font-size: 1em; /* Perkecil font judul modal */
+            }
+            .pdf-preview-controls button {
+                padding: 5px 10px; /* Perkecil tombol navigasi PDF */
+                font-size: 0.8em;
+            }
+            .pdf-preview-controls span {
+                font-size: 0.8em; /* Perkecil info halaman */
+            }
+            .preview-limit-note {
+                font-size: 0.75em; /* Perkecil catatan limit */
+            }
+        }
+        @media (max-width: 480px) {
+            .book-cover-container {
+                max-width: 180px; /* Lebih kecil lagi untuk layar sangat kecil */
+            }
+             .book-actions .btn {
+                display: block; /* Tombol aksi jadi full width */
+                width: 100%;
+                margin-right: 0; /* Hapus margin kanan */
+                box-sizing: border-box;
+            }
+            .modal-pdf-content {
+                width: 98%;
+                margin: 1% auto;
+                padding: 8px;
+            }
+             .modal-header-pdf h4 {
+                font-size: 0.9em;
+            }
+            .pdf-preview-controls {
+                display: flex; /* Tombol navigasi jadi flex */
+                justify-content: space-between;
+                align-items: center;
+            }
+            .pdf-preview-controls button {
+                flex-grow: 1; /* Tombol mengisi ruang */
+                margin: 0 2px; /* Margin antar tombol sedikit */
+            }
+            .pdf-preview-controls span {
+                margin: 0 5px; /* Margin info halaman */
+                white-space: nowrap; /* Cegah info halaman wrap */
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <header class="header-main">
+        <div class="header-left">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Digi Pustaka" onerror="this.style.display='none'; this.onerror=null;">
+            </div>
+            <div class="site-title-container">
+                <h1 class="site-title">Digi Pustaka</h1>
+                <p class="site-subtitle">Sistem Informasi Perpustakaan Digital</p>
+            </div>
+        </div>
+        <nav class="main-nav">
+            <ul> 
+                <li><a href="{{ url_for('index') }}">Beranda</a></li>
+                <li><a href="{{ url_for('books_catalog_physical') }}" class="{{ 'active' if request.endpoint == 'books_catalog_physical' else '' }}">Buku Fisik</a></li>
+                <li><a href="{{ url_for('books_catalog_digital') }}" class="{{ 'active' if request.endpoint == 'books_catalog_digital' else '' }}">Buku Digital</a></li>
+                {% if g.user %}
+                    {% if g.user.role == 'admin' %}
+                        <li><a href="{{ url_for('admin_dashboard') }}" class="admin-link {{ 'active' if 'admin' in request.endpoint else '' }}">Panel Admin</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' else '' }}">Dashboard</a></li>
+                    {% endif %}
+                    <li><a href="{{ url_for('logout') }}">Logout ({{ g.user.nama_lengkap }})</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('register') }}">Registrasi</a></li>
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    <div class="page-content-container book-detail-page"> 
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if book %}
+            <h2 class="book-title-main">{{ book.judul }}</h2> 
+
+            <div class="book-detail-layout">
+                <div class="book-cover-container">
+                    {% if book.cover_image_path %}
+                        <img src="{{ url_for('static', filename=book.cover_image_path) }}" alt="Sampul {{ book.judul }}" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_cover.png') }}';"> 
+                    {% else %}
+                        <img src="{{ url_for('static', filename='images/default_cover.png') }}" alt="Sampul Default" onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/default_cover.png') }}';">
+                    {% endif %}
+                </div>
+                <div class="book-info-container">
+                    <p><strong>Pengarang:</strong> {{ book.pengarang if book.pengarang else '-' }}</p>
+                    <p><strong>Kategori:</strong> {{ book.nama_kategori if book.nama_kategori else 'Tidak Berkategori' }}</p>
+                    <p><strong>Jenis Buku:</strong> {{ book.jenis_buku.capitalize() if book.jenis_buku else '-' }}</p>
+                    
+                    {% if book.jenis_buku == 'fisik' %}
+                        <p><strong>Stok Tersedia:</strong> <span class="book-stock {{ 'available' if book.stok_fisik > 0 else 'unavailable' }}">{{ book.stok_fisik if book.stok_fisik is not none and book.stok_fisik > 0 else 'Habis' }}</span></p>
+                    {% endif %}
+                     <p><strong>Ditambahkan pada:</strong> {{ book.created_at.split(' ')[0] if book.created_at else '-' }}</p>
+
+
+                    <div class="synopsis">
+                        <h3>Ringkasan</h3>
+                        <p>{{ book.ringkasan if book.ringkasan else 'Ringkasan tidak tersedia.' }}</p>
+                    </div>
+
+                    <div class="book-actions">
+                        {% if book.jenis_buku == 'digital' %}
+                            {# Tombol Preview hanya untuk PDF #}
+                            {% if book.file_ebook_path and book.file_ebook_path.lower().endswith('.pdf') %}
+                                <button id="previewPdfBtn" class="btn btn-preview">Lihat Preview</button>
+                            {% endif %}
+
+                            {% if g.user %}
+                                {% if book.file_ebook_path %}
+                                    <a href="{{ url_for('borrow_book', book_id=book.book_id) }}" class="btn btn-borrow">Pinjam & Unduh</a>
+                                {% else %}
+                                    <button class="btn btn-borrow" disabled>eBook Tidak Tersedia</button>
+                                {% endif %}
+                            {% else %}
+                                <a href="{{ url_for('login', next=request.url) }}" class="btn btn-borrow">Login untuk Meminjam</a>
+                            {% endif %}
+                        {% elif book.jenis_buku == 'fisik' %}
+                             {% if g.user %}
+                                {% if book.stok_fisik is not none and book.stok_fisik > 0 %}
+                                    <a href="{{ url_for('borrow_book', book_id=book.book_id) }}" class="btn btn-borrow">Pinjam Buku Fisik</a>
+                                {% else %}
+                                     <button class="btn btn-borrow" disabled>Stok Habis</button>
+                                {% endif %}
+                             {% else %}
+                                <a href="{{ url_for('login', next=request.url) }}" class="btn btn-borrow">Login untuk Meminjam</a>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <h2 class="page-title">Buku Tidak Ditemukan</h2> {# Menggunakan class yang mungkin sudah ada atau buat baru #}
+            <p style="text-align:center;">Maaf, buku yang Anda cari tidak dapat ditemukan.</p>
+        {% endif %}
+        <div class="back-button-container">
+            {% if book and book.jenis_buku == 'fisik' %}
+                 <a href="{{ url_for('books_catalog_physical') }}" class="btn btn-back">Kembali ke Katalog Buku Fisik</a>
+            {% elif book and book.jenis_buku == 'digital' %}
+                 <a href="{{ url_for('books_catalog_digital') }}" class="btn btn-back">Kembali ke Katalog Buku Digital</a>
+            {% else %}
+                 <a href="{{ url_for(request.referrer or 'index') }}" class="btn btn-back">Kembali</a> 
+            {% endif %}
+        </div>
+    </div>
+
+    <footer class="footer-main">
+        <p>&copy; {{ now.year if now else '' }} Digi Pustaka. Dibuat dengan Flask.</p>
+    </footer>
+
+    {# Modal untuk PDF Preview (Hanya jika buku adalah digital PDF) #}
+    {% if book and book.jenis_buku == 'digital' and book.file_ebook_path and book.file_ebook_path.lower().endswith('.pdf') %}
+    <div id="pdfPreviewModal" class="modal-pdf-preview">
+        <div class="modal-pdf-content">
+            <div class="modal-header-pdf">
+                <h4>Preview: {{ book.judul }}</h4>
+                <button class="close-modal-btn" id="closePdfModalBtn" aria-label="Tutup">&times;</button>
+            </div>
+            <div class="pdf-viewer-area"> {# Wrapper baru untuk canvas #}
+                <canvas id="pdf-viewer-canvas"></canvas>
+            </div>
+            <div class="pdf-preview-controls">
+                <button id="prev-page-btn">Sebelumnya</button>
+                <button id="next-page-btn">Berikutnya</button>
+                <span>Halaman: <span id="current-page-num">0</span> / <span id="total-page-num">0</span></span>
+            </div>
+            <p class="preview-limit-note">Preview terbatas hanya beberapa halaman awal.</p>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const previewBtn = document.getElementById('previewPdfBtn');
+        const modal = document.getElementById('pdfPreviewModal');
+        const closeModalBtn = document.getElementById('closePdfModalBtn');
+        const pdfCanvas = document.getElementById('pdf-viewer-canvas');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        const currentPageNumSpan = document.getElementById('current-page-num');
+        const totalPageNumSpan = document.getElementById('total-page-num');
+
+        if (!previewBtn || !modal || !closeModalBtn || !pdfCanvas || !prevPageBtn || !nextPageBtn || !currentPageNumSpan || !totalPageNumSpan) {
+            return; 
+        }
+
+        let pdfDoc = null;
+        let currentPageNum = 1;
+        let totalPages = 0;
+        const MAX_PREVIEW_PAGES = 30; 
+        let currentScale = 1.0; 
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.worker.min.js';
+
+        function renderPage(num) {
+            if (!pdfDoc) return;
+            currentPageNum = num;
+
+            pdfDoc.getPage(num).then(function(page) {
+                // Menyesuaikan skala berdasarkan lebar viewport mobile
+                let scaleToUse = currentScale;
+                if (window.innerWidth < 768) { // Jika lebar viewport kurang dari 768px (mobile)
+                    const viewerArea = document.querySelector('.pdf-viewer-area');
+                    if (viewerArea) {
+                        const desiredWidth = viewerArea.clientWidth - 10; // Kurangi sedikit untuk padding/border
+                        const unscaledViewport = page.getViewport({ scale: 1 });
+                        scaleToUse = desiredWidth / unscaledViewport.width;
+                    }
+                }
+
+                const viewport = page.getViewport({ scale: scaleToUse }); 
+                const context = pdfCanvas.getContext('2d');
+                pdfCanvas.height = viewport.height;
+                pdfCanvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                page.render(renderContext).promise.then(function() {
+                }).catch(function(renderErr) {
+                    console.error('Error rendering page ' + num + ':', renderErr);
+                });
+            }).catch(function(pageErr){
+                console.error('Error getting page ' + num + ':', pageErr);
+            });
+            currentPageNumSpan.textContent = currentPageNum;
+            updateNavButtons();
+        }
+
+        function updateNavButtons() {
+            prevPageBtn.disabled = (currentPageNum <= 1);
+            nextPageBtn.disabled = (currentPageNum >= totalPages || currentPageNum >= MAX_PREVIEW_PAGES);
+        }
+
+        previewBtn.onclick = function() {
+            const pdfUrl = "{{ url_for('static', filename=book.file_ebook_path) }}";
+            
+            modal.style.display = "block";
+            document.body.style.overflow = 'hidden'; 
+
+            pdfjsLib.getDocument(pdfUrl).promise.then(function(pdfDoc_) {
+                pdfDoc = pdfDoc_;
+                totalPages = pdfDoc.numPages;
+                totalPageNumSpan.textContent = Math.min(totalPages, MAX_PREVIEW_PAGES);
+                
+                currentPageNum = 1; 
+                renderPage(currentPageNum); // Render halaman pertama saat modal dibuka
+            }).catch(function(error) {
+                console.error("Error loading PDF: ", error);
+                alert("Gagal memuat preview PDF. File mungkin rusak atau tidak didukung.");
+                modal.style.display = "none";
+                document.body.style.overflow = 'auto';
+            });
+        }
+
+        function closeTheModal() {
+            modal.style.display = "none";
+            document.body.style.overflow = 'auto'; 
+            if (pdfDoc) { 
+                pdfDoc.destroy().then(function() {
+                    pdfDoc = null;
+                }).catch(function(destroyErr) {
+                    console.error("Error menghancurkan dokumen PDF:", destroyErr);
+                    pdfDoc = null; 
+                });
+            }
+            const context = pdfCanvas.getContext('2d');
+            context.clearRect(0, 0, pdfCanvas.width, pdfCanvas.height);
+            currentPageNumSpan.textContent = '0';
+            totalPageNumSpan.textContent = '0';
+        }
+
+        closeModalBtn.onclick = closeTheModal;
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                closeTheModal();
+            }
+        }
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && modal.style.display === 'block') {
+                closeTheModal();
+            }
+        });
+
+        prevPageBtn.onclick = function() {
+            if (currentPageNum <= 1) return;
+            currentPageNum--;
+            renderPage(currentPageNum);
+        }
+
+        nextPageBtn.onclick = function() {
+            if (currentPageNum >= totalPages || currentPageNum >= MAX_PREVIEW_PAGES) return;
+            currentPageNum++;
+            renderPage(currentPageNum);
+        }
+
+        // Re-render halaman saat ukuran window berubah untuk menyesuaikan skala di mobile
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function() {
+                if (pdfDoc && modal.style.display === 'block') {
+                    renderPage(currentPageNum);
+                }
+            }, 250); // Debounce untuk performa
+        });
+
+    });
+    </script>
+    {% endif %}
+
+</body>
+</html>
