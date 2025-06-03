@@ -49,7 +49,7 @@
 
 <p align="center">
   <img src="assets/images/beranda.png" alt="Beranda" width="350"/>
-  <img src="assets/images/beranda_2.png.png" alt="Beranda" width="350"/>
+  <img src="assets/images/beranda_2.png" alt="Beranda" width="350"/>
 </p>
 
 ### Katalog Buku Digital
