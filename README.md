@@ -159,25 +159,31 @@ python app.py
 
 ## 👨‍💻 Pengembang Utama
 
-**Nama**: Zacky Putra Setyawan
-**Status**: Mahasiswa Sistem Informasi
-**Institusi**: Universitas Buana Perjuangan Karawang
-**Peran**: Full Stack Developer: Backend, Frontend, Database, Integrasi Fitur
-**Email**: [zackyputra1905@gmail.com](mailto:zackyputra1905@gmail.com)
-**GitHub**: [@kidinggg](https://github.com/kidinggg)
+* **Nama**: Zacky Putra Setyawan
+      * **Status**: Mahasiswa Sistem Informasi
+      * **Institusi**: Universitas Buana Perjuangan Karawang
+      * **Peran**: Full Stack Developer: Backend, Frontend, Database, Integrasi Fitur
+      * **Email**: [zackyputra1905@gmail.com](mailto:zackyputra1905@gmail.com)
+      * **GitHub**: [@kidinggg](https://github.com/kidinggg)
 
 ---
 
 ## 🤝 Tim Kontributor
 
 * **Naufal Fauzi Rahman** - Desain UI/UX
+    * **Status**: Mahasiswa Sistem Informasi
+    * **Institusi**: Universitas Buana Perjuangan Karawang
 * **Alfiansyah Hidayat** - Perancangan Database & Analisis Data Awal
+    * **Status**: Mahasiswa Sistem Informasi
+    * **Institusi**: Universitas Buana Perjuangan Karawang
 * **Farid Firdaus** - Pengelolaan Konten & Pengujian Modul
+    * **Status**: Mahasiswa Sistem Informasi
+    * **Institusi**: Universitas Buana Perjuangan Karawang
 * **Rahma Khoirunnisa** - Dokumentasi & Riset Pengguna
+    * **Status**: Mahasiswa Sistem Informasi
+    * **Institusi**: Universitas Buana Perjuangan Karawang
 
 ---
-
-> ⚠️ Pastikan semua file gambar berada di `assets/images/` agar tampilan tidak rusak.
 
 ---
 
