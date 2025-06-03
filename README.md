@@ -173,15 +173,19 @@ python app.py
 * **Naufal Fauzi Rahman** - Desain UI/UX & Dokumentasi laporan
     * **Status**: Mahasiswa Sistem Informasi
     * **Institusi**: Universitas Buana Perjuangan Karawang
+    * **Email**: [si23.naufahrahman@mhs.ubpkarawang.ac.id](mailto:si23.naufahrahman@mhs.ubpkarawang.ac.id)
 * **Alfiansyah Hidayat** - Desain konten,  Database & Analisis Data Awal
     * **Status**: Mahasiswa Sistem Informasi
     * **Institusi**: Universitas Buana Perjuangan Karawang
+    * **Email**: [si23.alfihidayat@mhs.ubpkarawang.ac.id](mailto:si23.alfihidayat@mhs.ubpkarawang.ac.id)
 * **Farid Firdaus** - Pengelolaan Konten & Pengujian Modul
     * **Status**: Mahasiswa Sistem Informasi
     * **Institusi**: Universitas Buana Perjuangan Karawang
+    * **Email**: [si23.faridfirdaus@mhs.ubpkarawang.ac.id](mailto:si23.faridfirdaus@mhs.ubpkarawang.ac.id)
 * **Rahma Khoirunnisa** - Database & Riset Pengguna
     * **Status**: Mahasiswa Sistem Informasi
     * **Institusi**: Universitas Buana Perjuangan Karawang
+    * **Email**: [si23.rahmakhoirunnisa@mhs.ubpkarawang.ac.id](mailto:si23.rahmakhoirunnisa@mhs.ubpkarawang.ac.id)
 
 ---
 
