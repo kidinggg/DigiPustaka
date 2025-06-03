@@ -160,11 +160,11 @@ python app.py
 ## 👨‍💻 Pengembang Utama
 
 * **Nama**: Zacky Putra Setyawan
-      * **Status**: Mahasiswa Sistem Informasi
-      * **Institusi**: Universitas Buana Perjuangan Karawang
-      * **Peran**: Full Stack Developer: Backend, Frontend, Database, Integrasi Fitur
-      * **Email**: [zackyputra1905@gmail.com](mailto:zackyputra1905@gmail.com)
-      * **GitHub**: [@kidinggg](https://github.com/kidinggg)
+    * **Status**: Mahasiswa Sistem Informasi
+    * **Institusi**: Universitas Buana Perjuangan Karawang
+    * **Peran**: Full Stack Developer: Backend, Frontend, Database, Integrasi Fitur
+    * **Email**: [zackyputra1905@gmail.com](mailto:zackyputra1905@gmail.com)
+    * **GitHub**: [@kidinggg](https://github.com/kidinggg)
 
 ---
 
