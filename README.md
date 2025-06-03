@@ -162,7 +162,7 @@ python app.py
 * **Nama**: Zacky Putra Setyawan
     * **Status**: Mahasiswa Sistem Informasi
     * **Institusi**: Universitas Buana Perjuangan Karawang
-    * **Peran**: Full Stack Developer: Backend, Frontend, Database, Integrasi Fitur
+    * **Peran**: Full Stack Developer: Backend, Frontend, Database, Integrasi Fitur, testing
     * **Email**: [zackyputra1905@gmail.com](mailto:zackyputra1905@gmail.com)
     * **GitHub**: [@kidinggg](https://github.com/kidinggg)
 
@@ -170,16 +170,16 @@ python app.py
 
 ## 🤝 Tim Kontributor
 
-* **Naufal Fauzi Rahman** - Desain UI/UX
+* **Naufal Fauzi Rahman** - Desain UI/UX & Dokumentasi laporan
     * **Status**: Mahasiswa Sistem Informasi
     * **Institusi**: Universitas Buana Perjuangan Karawang
-* **Alfiansyah Hidayat** - Perancangan Database & Analisis Data Awal
+* **Alfiansyah Hidayat** - Desain konten,  Database & Analisis Data Awal
     * **Status**: Mahasiswa Sistem Informasi
     * **Institusi**: Universitas Buana Perjuangan Karawang
 * **Farid Firdaus** - Pengelolaan Konten & Pengujian Modul
     * **Status**: Mahasiswa Sistem Informasi
     * **Institusi**: Universitas Buana Perjuangan Karawang
-* **Rahma Khoirunnisa** - Dokumentasi & Riset Pengguna
+* **Rahma Khoirunnisa** - Database & Riset Pengguna
     * **Status**: Mahasiswa Sistem Informasi
     * **Institusi**: Universitas Buana Perjuangan Karawang
 
