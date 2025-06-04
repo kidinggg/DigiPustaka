@@ -4,29 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin Digi Pustaka{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {# Font Awesome untuk ikon #}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
     <style>
+        /* CSS LENGKAP UNTUK ADMIN LAYOUT */
         body {
             display: flex;
             flex-direction: column;
             min-height: 100vh;
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6; 
+            background-color: #f4f7f6;
+            font-size: 16px; /* Ukuran font dasar yang lebih nyaman */
         }
 
         /* Header Admin */
         .admin-header-main { 
             background-color: #00A6FF; 
             color: white;
-            padding: 0 15px; 
+            padding: 0 20px; 
             display: flex;
             align-items: center;
-            justify-content: flex-start; /* Header kiri saja */
+            justify-content: flex-start;
             flex-shrink: 0;
             height: 65px; 
-            box-sizing: border-box;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: fixed; 
             top: 0;
@@ -34,419 +36,242 @@
             right: 0;
             z-index: 1030; 
         }
-        .admin-header-main .header-left-admin-group {
-            display: flex;
-            align-items: center;
-            min-width: 0; 
-        }
         .sidebar-toggle-btn { 
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.3em; 
-            margin-right: 10px; 
-            cursor: pointer;
-            padding: 8px; 
-            line-height: 1; 
+            background: none; border: none; color: white;
+            font-size: 1.5em; 
+            margin-right: 15px; 
+            cursor: pointer; padding: 8px; line-height: 1; 
         }
         .sidebar-toggle-btn:hover {
             background-color: rgba(255,255,255,0.15);
             border-radius: 4px;
         }
-        .admin-header-main .logo-container img {
-            height: 38px; 
-            margin-right: 8px;
-        }
-        .admin-header-main .site-title-container {
-            overflow: hidden; 
-        }
-        .admin-header-main .site-title-container .site-title {
-            font-size: 1.4em; 
+        .admin-header-main .site-title {
+            font-size: 1.5em; 
             font-weight: 600; 
             margin: 0;
-            color: white; 
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .admin-header-main .site-title-container .site-subtitle {
-            font-size: 0.75em; 
-            margin: 0;
-            font-weight: 300;
-            color: #e0f2ff; 
-            display: none; 
         }
         
+        /* Body Wrapper */
         .admin-body-container {
             display: flex;
             flex-grow: 1;
             margin-top: 65px; 
-            overflow: hidden; 
-            position: relative; 
         }
 
-        /* Sidebar Admin (Putih) */
+        /* Sidebar Admin */
         .admin-sidebar { 
-            width: 250px; 
+            width: 260px;
             background-color: #ffffff; 
-            padding: 15px 0; 
-            color: #343a40; 
             flex-shrink: 0;
-            overflow-y: auto;
-            border-right: 1px solid #d8dde2; 
-            box-shadow: 2px 0 6px rgba(0,0,0,0.06); 
+            border-right: 1px solid #e9ecef; 
+            box-shadow: 2px 0 6px rgba(0,0,0,0.05); 
             transition: width 0.3s ease, transform 0.3s ease; 
             position: fixed; 
-            left: 0;
-            top: 65px; 
-            bottom: 0; 
+            left: 0; top: 65px; bottom: 0; 
             z-index: 1020;
             display: flex; 
             flex-direction: column; 
+            overflow-y: auto;
         }
-        .admin-sidebar nav { 
-            flex-grow: 1; 
-        }
-        .admin-sidebar.desktop-minimized {
-            width: 68px; 
-        }
-        .admin-sidebar.desktop-minimized .admin-sidebar-logo {
-            padding: 15px 0; 
-        }
-        .admin-sidebar.desktop-minimized .admin-sidebar-logo img {
-            width: 35px; 
-            height: 35px;
-        }
-        .admin-sidebar.desktop-minimized .admin-sidebar-logo .sidebar-site-title,
-        .admin-sidebar.desktop-minimized .admin-sidebar-logo .sidebar-site-subtitle {
-            display: none; 
-        }
-        .admin-sidebar.desktop-minimized nav ul li a .link-text,
-        .admin-sidebar.desktop-minimized .sidebar-footer-links .link-text { 
-            display: none; 
-        }
-        .admin-sidebar.desktop-minimized nav ul li a,
-        .admin-sidebar.desktop-minimized .sidebar-footer-links a {
-            padding: 14px 0; 
-            text-align: center; 
-            border-left-width: 0; 
-            justify-content: center; 
-        }
-         .admin-sidebar.desktop-minimized nav ul li a.active {
-            border-left-width: 4px; 
-            border-left-color: #007bff; 
-            background-color: #e6f2ff; 
-         }
-        .admin-sidebar.desktop-minimized nav ul li a .menu-icon,
-        .admin-sidebar.desktop-minimized .sidebar-footer-links a .menu-icon {
-            margin-right: 0; 
-            font-size: 1.35em; 
-        }
-
-        .admin-sidebar-logo { 
-            text-align: center;
-            padding: 10px 15px 15px 15px; 
+        
+        .admin-sidebar-header { 
+            padding: 20px 25px; 
             border-bottom: 1px solid #f0f2f5; 
-            margin-bottom: 10px;
         }
-        .admin-sidebar-logo img {
-            width: 45px; 
-            height: 45px;
-            margin-bottom: 8px;
+        .admin-sidebar-header .sidebar-site-title {
+            font-size: 1.25em; font-weight: 600; color: #343a40; margin: 0;
         }
-        .admin-sidebar-logo .sidebar-site-title {
-            font-size: 1.1em; 
-            font-weight: 600;
-            color: #343a40;
-            margin: 0;
-        }
-         .admin-sidebar-logo .sidebar-site-subtitle {
-            font-size: 0.8em;
-            color: #6c757d;
-            margin: 0;
+        .admin-sidebar-header .sidebar-site-subtitle {
+            font-size: 0.85em; color: #6c757d; margin: 0;
         }
 
-        .admin-sidebar nav ul {
-            list-style-type: none; padding: 0; margin: 0;
-        }
+        .admin-sidebar nav { flex-grow: 1; margin-top: 10px; }
+        .admin-sidebar nav ul { list-style-type: none; padding: 0; margin: 0; }
         .admin-sidebar nav ul li a {
-            display: flex; 
-            align-items: center;
-            padding: 11px 20px; 
-            color: #495057; 
-            text-decoration: none;
-            font-size: 0.92em; 
+            display: flex; align-items: center;
+            padding: 13px 25px; 
+            color: #495057; text-decoration: none;
+            font-size: 0.98em; /* Font menu lebih besar */
             border-left: 4px solid transparent; 
-            transition: background-color 0.2s ease, color 0.2s ease, border-left-color 0.2s ease;
+            transition: all 0.2s ease;
         }
         .admin-sidebar nav ul li a:hover {
-            background-color: #f0f2f5; 
-            color: #007bff; 
+            background-color: #f8f9fa; color: #007bff; 
         }
         .admin-sidebar nav ul li a.active { 
-            background-color: #e6f2ff; 
-            color: #0056b3; 
-            font-weight: 600; 
-            border-left-color: #007bff; 
+            background-color: #e9f5ff; color: #0056b3; 
+            font-weight: 600; border-left-color: #007bff; 
         }
         .admin-sidebar nav ul li a .menu-icon { 
-            margin-right: 12px; 
-            width: 22px; 
-            display: inline-block;
-            text-align: center;
-            font-size: 1.1em; 
-            color: #6c757d; 
+            margin-right: 15px; width: 22px; text-align: center;
+            font-size: 1.1em; color: #6c757d; transition: color 0.2s ease;
         }
-        .admin-sidebar nav ul li a.active .menu-icon {
-            color: #0056b3; 
-        }
+        .admin-sidebar nav ul li a.active .menu-icon,
         .admin-sidebar nav ul li a:hover .menu-icon {
             color: #007bff; 
         }
         
-        .sidebar-footer-links {
-            margin-top: auto; 
-            padding-top: 10px; 
-            border-top: 1px solid #e0e0e0; 
-        }
-        .sidebar-footer-links ul {
-            list-style-type: none; padding: 0; margin: 0;
-        }
+        .sidebar-footer-links { margin-top: auto; padding: 10px 0; border-top: 1px solid #e9ecef; }
+        .sidebar-footer-links ul { list-style-type: none; padding: 0; margin: 0; }
         .sidebar-footer-links ul li a {
-            display: flex; align-items: center; padding: 10px 20px; 
-            color: #5a6268; text-decoration: none; font-size: 0.9em; 
+            display: flex; align-items: center;
+            padding: 13px 25px; 
+            color: #495057; text-decoration: none;
+            font-size: 0.98em;
+            transition: all 0.2s ease;
         }
         .sidebar-footer-links ul li a:hover {
-            background-color: #f0f2f5; color: #dc3545; 
+            background-color: #f8f9fa; color: #007bff;
         }
-        .sidebar-footer-links ul li a:hover .menu-icon {
-            color: #dc3545; 
-        }
-         .sidebar-footer-links ul li a[target="_blank"]:hover .menu-icon {
-            color: #007bff; 
-        }
-        .sidebar-footer-links ul li a .menu-icon { 
-            margin-right: 12px; width: 22px; display: inline-block;
-            text-align: center; font-size: 1.05em; color: #718096; 
+         .sidebar-footer-links ul li a:hover .menu-icon {
+            color: #007bff;
         }
 
-        /* Area Konten Utama Admin */
+
+        /* Konten Utama Admin */
         .admin-content { 
             flex-grow: 1;
-            padding: 20px; 
-            background-color: #e9ecef; 
+            padding: 25px 30px; 
+            background-color: #f0f2f5; 
             overflow-y: auto;
-            margin-left: 250px; 
+            margin-left: 260px;
             transition: margin-left 0.3s ease; 
         }
-        .admin-content.sidebar-minimized { 
-            margin-left: 68px; 
+        .admin-content .page-header-title {
+            font-size: 1.8em; color: #343a40; 
+            margin-top: 0; margin-bottom: 25px; 
         }
-        .admin-content .page-header-title { /* Ini adalah judul H2 di dalam .admin-content */
-            font-size: 1.7em; 
-            color: #343a40; 
-            margin-top: 0; 
-            margin-bottom: 20px; 
-            padding-bottom: 10px;
-            border-bottom: 1px solid #ced4da;
+        .content-wrapper {
+            background-color: #ffffff;
+            padding: 25px; border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
         }
+
+        /* Style untuk Tabel Data */
+        .table-responsive-wrapper {
+            width: 100%; overflow-x: auto;
+        }
+        .data-table {
+            width: 100%; border-collapse: collapse; margin-top: 20px;
+        }
+        .data-table th, .data-table td {
+            padding: 14px 16px; border: 1px solid #dee2e6;
+            text-align: left; font-size: 0.95em; 
+            vertical-align: middle;
+        }
+        .data-table thead th {
+            background-color: #f1f3f5; font-weight: 600; color: #495057;
+        }
+        .data-table tbody tr:nth-of-type(even) { background-color: #f8f9fa; }
+        .data-table tbody tr:hover { background-color: #f1f7ff; }
+        .action-buttons a, .action-buttons button, .action-buttons .btn {
+            text-decoration: none; color: #fff;
+            padding: 6px 12px; border-radius: 5px; margin-right: 5px;
+            border: none; cursor: pointer; font-size: 0.9em;
+            display: inline-block; margin-bottom: 5px;
+        }
+        .btn-detail { background-color: #007bff; }
+        .btn-admin { background-color: #28a745; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-warning { background-color: #ffc107; color: #212529;}
+
 
         /* Footer Admin */
         .admin-footer { 
-            text-align: center; padding: 12px; 
-            background-color: #dee2e6; 
-            color: #495057; 
-            font-size: 0.8em; 
-            flex-shrink: 0;
-            border-top: 1px solid #adb5bd; 
-            margin-left: 250px; 
+            text-align: center; padding: 15px; 
+            background-color: #ffffff; color: #6c757d; 
+            font-size: 0.85em; border-top: 1px solid #e9ecef; 
+            margin-left: 260px; 
             transition: margin-left 0.3s ease;
         }
-        .admin-footer.sidebar-minimized { 
-            margin-left: 68px; 
+        
+        /* RESPONSIVE & SIDEBAR MINIMIZED */
+        .admin-sidebar.desktop-minimized { width: 72px; }
+        .admin-sidebar.desktop-minimized .admin-sidebar-header .sidebar-site-title,
+        .admin-sidebar.desktop-minimized .admin-sidebar-header .sidebar-site-subtitle,
+        .admin-sidebar.desktop-minimized nav ul li a .link-text,
+        .admin-sidebar.desktop-minimized .sidebar-footer-links .link-text {
+            display: none;
+        }
+        .admin-sidebar.desktop-minimized nav ul li a,
+        .admin-sidebar.desktop-minimized .sidebar-footer-links ul li a {
+            justify-content: center;
+            padding-left:0;
+            padding-right:0;
+        }
+         .admin-sidebar.desktop-minimized nav ul li a .menu-icon,
+         .admin-sidebar.desktop-minimized .sidebar-footer-links ul li a .menu-icon {
+            margin-right: 0;
+            font-size: 1.3em;
+        }
+
+
+        .admin-content.sidebar-minimized,
+        .admin-footer.sidebar-minimized {
+            margin-left: 72px;
         }
 
         .mobile-overlay {
-            display: none;
-            position: fixed;
+            display: none; position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1010; 
+            background: rgba(0,0,0,0.4); z-index: 1015; /* Di bawah sidebar mobile */
         }
-        .mobile-overlay.active {
-            display: block;
-        }
+        .mobile-overlay.active { display: block; }
 
-        /* Responsif untuk Mobile */
+
         @media (max-width: 768px) {
-            .admin-header-main .main-nav { /* Sembunyikan navigasi kanan di header mobile */
-                display: none !important; 
-            }
-            .admin-header-main .site-title-container .site-title {
-                font-size: 1.2em; 
-            }
-            .admin-header-main .site-title-container .site-subtitle {
-                display: none; 
-            }
-             .admin-header-main .logo-container img {
-                height: 32px;
-                margin-right: 8px;
-            }
-            .sidebar-toggle-btn {
-                font-size: 1.25em; 
-                margin-right: 8px;
-                padding: 7px;
-            }
-
-            .admin-sidebar {
+            .admin-sidebar { 
                 transform: translateX(-100%); 
-                width: 240px; 
-                top: 65px; 
-                box-shadow: 2px 0 8px rgba(0,0,0,0.15); 
-                z-index: 1040; 
+                width: 250px; 
+                z-index: 1040; /* Di atas overlay */
             }
             .admin-sidebar.mobile-open { 
                 transform: translateX(0);
             }
-            .admin-sidebar.desktop-minimized { 
-                width: 240px; 
-            }
-            .admin-sidebar.desktop-minimized .admin-sidebar-logo .sidebar-site-title,
-            .admin-sidebar.desktop-minimized .admin-sidebar-logo .sidebar-site-subtitle,
+             /* Abaikan state minimized di mobile, selalu tampilkan teks */
+            .admin-sidebar.desktop-minimized { width: 250px; }
+            .admin-sidebar.desktop-minimized .admin-sidebar-header .sidebar-site-title,
+            .admin-sidebar.desktop-minimized .admin-sidebar-header .sidebar-site-subtitle,
             .admin-sidebar.desktop-minimized nav ul li a .link-text,
             .admin-sidebar.desktop-minimized .sidebar-footer-links .link-text { 
                 display: block; 
             }
             .admin-sidebar.desktop-minimized nav ul li a,
-            .admin-sidebar.desktop-minimized .sidebar-footer-links a {
-                padding: 11px 20px; 
-                text-align: left; 
+            .admin-sidebar.desktop-minimized .sidebar-footer-links ul li a {
                 justify-content: flex-start; 
+                padding: 13px 25px;
             }
-            .admin-sidebar.desktop-minimized nav ul li a .menu-icon,
-            .admin-sidebar.desktop-minimized .sidebar-footer-links a .menu-icon {
-                margin-right: 12px; 
+             .admin-sidebar.desktop-minimized nav ul li a .menu-icon,
+             .admin-sidebar.desktop-minimized .sidebar-footer-links ul li a .menu-icon {
+                margin-right: 15px; 
                 font-size: 1.1em; 
             }
-            .admin-sidebar.desktop-minimized nav ul li a.active {
-                 border-left-width: 4px; 
-            }
 
-            .admin-content, .admin-footer {
-                margin-left: 0 !important; 
-                padding: 15px; 
-            }
-             .admin-content.sidebar-minimized, .admin-footer.sidebar-minimized {
+            .admin-content, .admin-footer { 
                 margin-left: 0 !important; 
             }
-            .admin-content .page-header-title { /* Judul H2 di dalam konten admin */
-                font-size: 1.4em; 
-                margin-bottom: 15px;
-                padding-bottom: 8px;
-            }
-
-            /* CSS untuk Dashboard Admin di Mobile (Kartu Statistik & Menu Grid 2 Kolom) */
-            /* Pastikan class .dashboard-stats dan .admin-menu-grid ada di admin_dashboard.html */
-            .dashboard-stats { 
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 12px !important;
-            }
-            .stat-card { 
-                padding: 12px !important;
-                min-height: auto !important;
-                font-size: 0.85em !important;
-                display: flex !important;
-                flex-direction: column !important;
-                justify-content: center !important; 
-                align-items: center !important;
-            }
-            .stat-card .stat-icon {
-                font-size: 1.6em !important;
-                margin-bottom: 4px !important;
-            }
-            .stat-card h4 {
-                font-size: 0.9em !important;
-                margin-bottom: 3px !important;
-                line-height: 1.2;
-                height: auto; 
-            }
-            .stat-card .stat-value {
-                font-size: 1.6em !important;
-                margin-bottom: 3px !important;
-            }
-            .stat-card .stat-description {
-                font-size: 0.7em !important;
-                line-height: 1.2 !important;
-            }
-
-            .admin-menu-grid {
-                display: grid !important;
-                grid-template-columns: repeat(2, 1fr) !important;
-                gap: 12px !important;
-            }
-            .admin-menu-grid .menu-item a {
-                padding: 15px 8px !important;
-                font-size: 0.85em !important;
-                min-height: 100px !important;
-            }
-            .admin-menu-grid .menu-item a .menu-icon {
-                font-size: 1.8em !important;
-                margin-bottom: 8px !important;
-            }
         }
-
-        @media (max-width: 480px) {
-             .admin-header-main .site-title-container .site-title {
-                font-size: 1em; 
-            }
-             .admin-header-main .logo-container img {
-                height: 28px;
-            }
-            .admin-sidebar {
-                width: 220px; 
-            }
-            /* Untuk layar sangat kecil, statistik dan menu bisa kembali 1 kolom jika 2 kolom terlalu sempit */
-            .dashboard-stats,
-            .admin-menu-grid {
-                grid-template-columns: 1fr !important; 
-            }
-            .stat-card h4 {
-                font-size: 0.85em !important; /* Sedikit penyesuaian jika 1 kolom */
-            }
-             .admin-menu-grid .menu-item a {
-                font-size: 0.8em !important;
-            }
-        }
-
     </style>
     {% block head_extra %}{% endblock %}
 </head>
 <body>
     <header class="admin-header-main"> 
-        <div class="header-left-admin-group">
-            <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Sidebar">
-                <i class="fas fa-bars"></i> 
-            </button>
-            <div class="logo-container">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Digi Pustaka" onerror="this.style.display='none'; this.onerror=null;">
-            </div>
-            <div class="site-title-container">
-                <h1 class="site-title">Digi Pustaka</h1>
-                <p class="site-subtitle">Panel Administrasi</p>
-            </div>
-        </div>
-        {# Navigasi kanan di header (main-nav) DIHAPUS dari sini untuk desktop dan mobile #}
+        <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Sidebar">
+            <i class="fas fa-bars"></i> 
+        </button>
+        <h1 class="site-title">Digi Pustaka</h1>
     </header>
 
     <div class="admin-body-container">
         <aside class="admin-sidebar" id="adminSidebar"> 
-            <div class="admin-sidebar-logo">
+            <div class="admin-sidebar-header">
                 <h2 class="sidebar-site-title">Digi Pustaka</h2>
                 <p class="sidebar-site-subtitle">Admin Menu</p>
             </div>
-            <nav> {# Menu utama sidebar #}
+            <nav>
                 <ul>
+                    {# --- url_for disesuaikan dengan nama fungsi di app.py --- #}
                     <li><a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' else '' }}"><span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span><span class="link-text">Dashboard</span></a></li>
                     <li><a href="{{ url_for('admin_list_books') }}" class="{{ 'active' if request.endpoint in ['admin_list_books', 'admin_add_book', 'admin_edit_book'] else '' }}"><span class="menu-icon"><i class="fas fa-book"></i></span><span class="link-text">Manajemen Buku</span></a></li>
                     <li><a href="{{ url_for('admin_list_users') }}" class="{{ 'active' if request.endpoint in ['admin_list_users', 'admin_user_detail'] else '' }}"><span class="menu-icon"><i class="fas fa-users"></i></span><span class="link-text">Manajemen User</span></a></li>
@@ -454,138 +279,126 @@
                     <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}"><span class="menu-icon"><i class="fas fa-chart-line"></i></span><span class="link-text">Laporan</span></a></li>
                 </ul>
             </nav>
-            {# Link Logout dan Lihat Situs dipindahkan ke sini (bagian bawah sidebar) #}
             <div class="sidebar-footer-links">
                 <ul>
-                    {% if g.user %}
+                    {# --- url_for untuk logout dan index (biasanya tanpa prefix) --- #}
                     <li><a href="{{ url_for('logout') }}"><span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span><span class="link-text">Logout</span></a></li>
-                    {% endif %}
                     <li><a href="{{ url_for('index') }}" target="_blank"><span class="menu-icon"><i class="fas fa-external-link-alt"></i></span><span class="link-text">Lihat Situs</span></a></li>
                 </ul>
             </div>
         </aside>
 
         <main class="admin-content" id="adminMainContent"> 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+            <h2 class="page-header-title">{% block page_title %}{% endblock %}</h2>
             
-            {% block content %}
-            {# Konten spesifik dari setiap halaman admin akan dimuat di sini #}
-            {% endblock %}
+            <div class="content-wrapper">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                {# Anda mungkin perlu Bootstrap JS agar tombol close ini berfungsi #}
+                                {# <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button> #}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </div>
         </main>
     </div>
-    <div class="mobile-overlay" id="mobileOverlay"></div> {# Backdrop untuk mobile #}
+    <div class="mobile-overlay" id="mobileOverlay"></div>
+
 
     <footer class="admin-footer" id="adminFooter"> 
-        <p>&copy; {{ now.year if now else '' }} Digi Pustaka - Panel Admin</p>
+        <p>&copy; {{ current_year }} Digi Pustaka - Panel Admin</p>
     </footer>
 
-    {% block scripts %}
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
-            const adminSidebar = document.getElementById('adminSidebar');
-            const adminMainContent = document.getElementById('adminMainContent');
-            const adminFooter = document.getElementById('adminFooter');
-            const mobileOverlay = document.getElementById('mobileOverlay');
-            const body = document.body;
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+        const adminSidebar = document.getElementById('adminSidebar');
+        const adminMainContent = document.getElementById('adminMainContent');
+        const adminFooter = document.getElementById('adminFooter');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+        const body = document.body;
+        
+        const isDesktop = () => window.innerWidth > 768;
 
-            function applyDesktopSidebarState(isMinimized) {
-                if (isMinimized) {
-                    adminSidebar.classList.add('desktop-minimized');
-                    adminMainContent.classList.add('sidebar-minimized');
-                    adminFooter.classList.add('sidebar-minimized');
-                    sidebarToggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
-                    sidebarToggleBtn.title = "Perluas Sidebar";
-                } else {
-                    adminSidebar.classList.remove('desktop-minimized');
-                    adminMainContent.classList.remove('sidebar-minimized');
-                    adminFooter.classList.remove('sidebar-minimized');
-                    sidebarToggleBtn.innerHTML = '<i class="fas fa-times"></i>';
-                    sidebarToggleBtn.title = "Perkecil Sidebar";
-                }
+        function applyDesktopState(isMinimized) {
+            if (isMinimized) {
+                adminSidebar.classList.add('desktop-minimized');
+                adminMainContent.classList.add('sidebar-minimized');
+                if (adminFooter) adminFooter.classList.add('sidebar-minimized');
+                sidebarToggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                sidebarToggleBtn.setAttribute('title', 'Perluas Sidebar');
+            } else {
+                adminSidebar.classList.remove('desktop-minimized');
+                adminMainContent.classList.remove('sidebar-minimized');
+                if (adminFooter) adminFooter.classList.remove('sidebar-minimized');
+                sidebarToggleBtn.innerHTML = '<i class="fas fa-times"></i>';
+                sidebarToggleBtn.setAttribute('title', 'Perkecil Sidebar');
+            }
+        }
+
+        function toggleMobileSidebar(show) {
+            if (show === undefined) { 
+                adminSidebar.classList.toggle('mobile-open');
+            } else if (show) { 
+                adminSidebar.classList.add('mobile-open');
+            } else { 
+                adminSidebar.classList.remove('mobile-open');
             }
 
-            function toggleMobileSidebar(show) {
-                if (show) {
-                    adminSidebar.classList.add('mobile-open');
-                    if(mobileOverlay) mobileOverlay.classList.add('active');
-                    body.style.overflow = 'hidden'; 
-                    sidebarToggleBtn.innerHTML = '<i class="fas fa-times"></i>';
-                } else {
-                    adminSidebar.classList.remove('mobile-open');
-                    if(mobileOverlay) mobileOverlay.classList.remove('active');
-                    body.style.overflow = ''; 
-                    sidebarToggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
-                }
+            if (adminSidebar.classList.contains('mobile-open')) {
+                mobileOverlay.classList.add('active');
+                body.style.overflow = 'hidden'; 
+                sidebarToggleBtn.innerHTML = '<i class="fas fa-times"></i>';
+            } else {
+                mobileOverlay.classList.remove('active');
+                body.style.overflow = '';
+                sidebarToggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
             }
+        }
 
-            // Inisialisasi state
-            let isDesktopView = window.innerWidth > 768;
-
-            if (isDesktopView) {
-                let isSidebarInitiallyMinimized = localStorage.getItem('sidebarMinimizedDesktop') === 'true';
-                applyDesktopSidebarState(isSidebarInitiallyMinimized);
-            } else { // Mobile view
-                adminSidebar.classList.remove('desktop-minimized'); 
-                adminSidebar.classList.remove('mobile-open'); 
-                sidebarToggleBtn.innerHTML = '<i class="fas fa-bars"></i>'; 
-                adminMainContent.style.marginLeft = '0';
-                adminFooter.style.marginLeft = '0';
+        sidebarToggleBtn.addEventListener('click', function() {
+            if (isDesktop()) {
+                const isMinimized = adminSidebar.classList.contains('desktop-minimized');
+                applyDesktopState(!isMinimized);
+                localStorage.setItem('sidebarMinimized', !isMinimized);
+            } else {
+                toggleMobileSidebar(); 
             }
-
-            sidebarToggleBtn.addEventListener('click', function() {
-                if (window.innerWidth > 768) { 
-                    const isCurrentlyMinimized = adminSidebar.classList.contains('desktop-minimized');
-                    applyDesktopSidebarState(!isCurrentlyMinimized);
-                    localStorage.setItem('sidebarMinimizedDesktop', !isCurrentlyMinimized);
-                } else { 
-                    const isMobileNavOpen = adminSidebar.classList.contains('mobile-open');
-                    toggleMobileSidebar(!isMobileNavOpen);
-                }
-            });
-
-            if (mobileOverlay) {
-                mobileOverlay.addEventListener('click', function() {
-                    toggleMobileSidebar(false);
-                });
-            }
-
-            window.addEventListener('resize', function() {
-                const newIsDesktopView = window.innerWidth > 768;
-                
-                if (newIsDesktopView !== isDesktopView) { 
-                    isDesktopView = newIsDesktopView;
-                    if (isDesktopView) { 
-                        toggleMobileSidebar(false); 
-                        let isSidebarInitiallyMinimized = localStorage.getItem('sidebarMinimizedDesktop') === 'true';
-                        applyDesktopSidebarState(isSidebarInitiallyMinimized);
-                        adminMainContent.style.marginLeft = adminSidebar.classList.contains('desktop-minimized') ? '68px' : '250px'; 
-                        adminFooter.style.marginLeft = adminSidebar.classList.contains('desktop-minimized') ? '68px' : '250px'; 
-
-                    } else { 
-                        adminSidebar.classList.remove('desktop-minimized');
-                        adminMainContent.classList.remove('sidebar-minimized');
-                        adminMainContent.style.marginLeft = '0';
-                        adminFooter.classList.remove('sidebar-minimized');
-                        adminFooter.style.marginLeft = '0';
-                        toggleMobileSidebar(false); 
-                    }
-                } else if (!isDesktopView && adminSidebar.classList.contains('mobile-open')) {
-                    adminMainContent.style.marginLeft = '0';
-                    adminFooter.style.marginLeft = '0';
-                } else if (isDesktopView) {
-                     adminMainContent.style.marginLeft = adminSidebar.classList.contains('desktop-minimized') ? '68px' : '250px'; 
-                     adminFooter.style.marginLeft = adminSidebar.classList.contains('desktop-minimized') ? '68px' : '250px'; 
-                }
-            });
         });
+
+        mobileOverlay.addEventListener('click', function() {
+            toggleMobileSidebar(false); 
+        });
+
+        if (isDesktop()) {
+            const sidebarState = localStorage.getItem('sidebarMinimized') === 'true';
+            applyDesktopState(sidebarState);
+        } else {
+            sidebarToggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+        }
+
+        window.addEventListener('resize', () => {
+            if (isDesktop()) {
+                toggleMobileSidebar(false); 
+                const sidebarState = localStorage.getItem('sidebarMinimized') === 'true';
+                applyDesktopState(sidebarState); 
+            } else {
+                adminSidebar.classList.remove('desktop-minimized'); 
+                adminMainContent.classList.remove('sidebar-minimized');
+                if(adminFooter) adminFooter.classList.remove('sidebar-minimized');
+                if (!adminSidebar.classList.contains('mobile-open')) {
+                    sidebarToggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
+                }
+            }
+        });
+    });
     </script>
-    {% endblock %}
+    {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,116 +1,132 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}{{ title }} - Admin Digi Pustaka{% endblock %}
+{% block title %}Laporan Perpustakaan - Admin Digi Pustaka{% endblock %}
+
+{% block page_title %}Laporan Perpustakaan{% endblock %}
 
 {% block head_extra %}
 <style>
-    /* Styling spesifik untuk kartu statistik jika diperlukan */
-    .stats-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-        gap: 20px;
+    .report-card {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        text-align: center;
+    }
+    .report-card h4 {
+        margin-top: 0;
+        font-size: 1.1em;
+        color: #555;
+    }
+    .report-card .value {
+        font-size: 2em;
+        font-weight: bold;
+        color: #007bff;
+        margin: 10px 0;
+    }
+    .report-card .description {
+        font-size: 0.9em;
+        color: #777;
+    }
+    .report-section {
         margin-bottom: 30px;
     }
-    .stat-card {
-        background-color: #f1f3f5; padding: 20px; border-radius: 8px;
-        text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    .report-section h3 {
+        font-weight: 500;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
     }
-    .stat-card h4 { 
-        margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: #495057;
-    }
-    .stat-card .stat-value { font-size: 1.8em; font-weight: bold; color: #343a40; }
-    .stat-card p.desc { font-size: 0.85em; color: #6c757d; margin-top: 5px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="admin-content-area">
-    <h2>{{ title }}</h2>
 
-    <h3>Statistik Umum Peminjaman</h3>
-    <div class="stats-container">
-        <div class="stat-card">
-            <h4>Total Peminjaman</h4>
-            <div class="stat-value">{{ total_loans }}</div>
-            <p class="desc">Semua jenis buku</p>
-        </div>
-        <div class="stat-card">
-            <h4>Peminjaman Buku Fisik</h4>
-            <div class="stat-value">{{ physical_loans }}</div>
-            <p class="desc">Buku yang dipinjam secara fisik</p>
-        </div>
-        <div class="stat-card">
-            <h4>Unduhan Buku Digital</h4>
-            <div class="stat-value">{{ digital_loans }}</div>
-            <p class="desc">Buku digital yang diunduh</p>
-        </div>
-        <div class="stat-card">
-            <h4>Total Denda Terkumpul</h4>
-            <div class="stat-value">Rp {{ "{:,.0f}".format(total_fines_collected) }}</div>
-            <p class="desc">Dari pengembalian buku fisik</p>
-        </div>
+<div class="row" style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px;">
+    <div class="report-card" style="flex: 1; min-width: 200px;">
+        <h4>Total Peminjaman</h4>
+        <div class="value">{{ total_loans | default(0) }}</div>
+        <div class="description">Total semua jenis peminjaman</div>
     </div>
-    
-    <hr style="margin: 40px 0;">
+    <div class="report-card" style="flex: 1; min-width: 200px;">
+        <h4>Peminjaman Fisik</h4>
+        <div class="value">{{ physical_loans | default(0) }}</div>
+        <div class="description">Total peminjaman buku fisik</div>
+    </div>
+    <div class="report-card" style="flex: 1; min-width: 200px;">
+        <h4>Unduhan Digital</h4>
+        <div class="value">{{ digital_loans | default(0) }}</div>
+        <div class="description">Total unduhan buku digital</div>
+    </div>
+    <div class="report-card" style="flex: 1; min-width: 200px;">
+        <h4>Total Denda Terkumpul</h4>
+        <div class="value">Rp {{ "{:,.0f}".format(total_fines_collected | int) if total_fines_collected is not none else '0' }}</div>
+        <div class="description">Dari pengembalian buku fisik</div>
+    </div>
+</div>
 
+
+<div class="report-section">
     <h3>Buku Terpopuler (Paling Sering Dipinjam)</h3>
-    {% if popular_books %}
-        <div class="admin-table-container">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>Peringkat</th>
-                        <th>Judul Buku</th>
-                        <th>Jumlah Peminjaman</th>
-                    </tr>
-                </thead>
-                <tbody>
+    <div class="table-responsive-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">Peringkat</th>
+                    <th>Judul Buku</th>
+                    <th style="width: 150px;">Jumlah Peminjaman</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if popular_books %}
                     {% for book in popular_books %}
                     <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ book.judul }}</td>
-                        <td>{{ book.jumlah_peminjaman }}</td>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td>{{ book['judul'] }}</td>
+                        <td style="text-align: center;">{{ book['jumlah_peminjaman'] }}</td>
                     </tr>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p class="no-data">Belum ada data peminjaman untuk menampilkan buku terpopuler.</p>
-    {% endif %}
+                {% else %}
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 20px;">Belum ada data buku populer.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
-    <hr style="margin: 40px 0;">
-
+<div class="report-section">
     <h3>Pengguna dengan Akumulasi Denda Terbanyak</h3>
     {% if users_with_most_fines %}
-        <div class="admin-table-container">
-            <table class="admin-table">
+        <div class="table-responsive-wrapper">
+            <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Peringkat</th>
+                        <th style="width: 80px;">Peringkat</th>
                         <th>Nama Pengguna</th>
-                        <th>Nomor Anggota</th>
-                        <th>Total Denda (Rp)</th>
+                        <th>No. Anggota</th>
+                        <th style="width: 200px;">Total Denda (Rp)</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for user_fine in users_with_most_fines %}
                     <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ user_fine.nama_lengkap }}</td>
-                        <td>{{ user_fine.nomor_anggota }}</td>
-                        <td>{{ "{:,.0f}".format(user_fine.total_denda) }}</td>
+                        <td style="text-align: center;">{{ loop.index }}</td>
+                        <td>{{ user_fine['nama_lengkap'] }}</td>
+                        <td>{{ user_fine['nomor_anggota'] }}</td>
+                        <td style="text-align: right;">{{ "{:,.0f}".format(user_fine['total_denda'] | int) }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     {% else %}
-        <p class="no-data">Tidak ada pengguna dengan catatan denda.</p>
+        <p>Tidak ada pengguna dengan catatan denda.</p>
     {% endif %}
-    
-    <div style="margin-top: 30px; text-align: center;">
-        <p><em>Laporan lebih detail akan ditambahkan di masa mendatang.</em></p>
-    </div>
 </div>
+
+<p style="margin-top: 30px; font-style: italic; color: #777;">Laporan lebih detail akan ditambahkan di masa mendatang.</p>
+
 {% endblock %}

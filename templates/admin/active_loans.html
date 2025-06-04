@@ -1,63 +1,70 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}{{ title }} - Admin Digi Pustaka{% endblock %}
+{% block title %}Peminjaman Aktif - Admin Digi Pustaka{% endblock %}
+
+{% block page_title %}Peminjaman Buku Fisik Aktif{% endblock %}
 
 {% block content %}
-<div class="admin-content-area">
-    <h2>{{ title }}</h2>
+<h3 style="margin-bottom: 20px; font-weight: 500;">Daftar Peminjaman Aktif Saat Ini:</h3>
 
-    {% if processed_loan_details %}
-        <div class="processed-loan-info alert alert-info"> {# Menambahkan kelas alert-info #}
-            <h4>Info Pengembalian Terakhir Diproses:</h4>
-            <p>Buku: <strong>{{ processed_loan_details.judul_buku }}</strong></p>
-            <p>Peminjam: <strong>{{ processed_loan_details.nama_peminjam }} (ID: {{ processed_loan_details.user_id }})</strong></p>
-            <p>Status: <strong>{{ processed_loan_details.status_pinjaman.replace('_', ' ').capitalize() }}</strong></p>
-            <p>Denda Dihitung: <strong>Rp {{ "{:,.0f}".format(processed_loan_details.denda) if processed_loan_details.denda is not none else '0' }}</strong></p>
-            <a href="{{ url_for('admin_edit_fine', loan_id=processed_loan_details.loan_id, user_id=processed_loan_details.user_id) }}" class="btn edit-fine-btn btn-inline">Sesuaikan Denda Ini</a>
-            <a href="{{ url_for('admin_user_detail', user_id=processed_loan_details.user_id) }}" class="btn btn-secondary btn-inline" style="margin-left:10px; background-color:#6c757d;">Lihat Detail Peminjam</a>
-        </div>
-    {% endif %}
+<div class="table-responsive-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID Pinjam</th>
+                <th>No. Anggota</th>
+                <th>Nama Peminjam</th>
+                <th>Judul Buku</th>
+                <th>Tgl Pinjam</th>
+                <th>Tgl Jatuh Tempo</th>
+                <th style="width: 180px;">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if loans %}
+                {% for loan in loans %}
+                <tr>
+                    <td>{{ loan['loan_id'] }}</td>
+                    <td>{{ loan['nomor_anggota'] }}</td>
+                    <td>{{ loan['nama_peminjam'] }}</td>
+                    <td>{{ loan['judul_buku'] }}</td>
+                    <td>{{ loan['tanggal_pinjam'].split(' ')[0] if loan['tanggal_pinjam'] else '-' }}</td>
+                    <td>{{ loan['tanggal_jatuh_tempo'].split(' ')[0] if loan['tanggal_jatuh_tempo'] else '-' }}</td>
+                    <td class="action-buttons">
+                        {# --- PERUBAIKAN: Menggunakan kelas btn-admin (hijau) atau btn-detail (biru) --- #}
+                        <form action="{{ url_for('admin_return_book', loan_id=loan['loan_id']) }}" method="post" onsubmit="return confirm('Apakah Anda yakin buku ini sudah dikembalikan?');">
+                            <button type="submit" class="btn btn-admin">Tandai Dikembalikan</button> 
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 20px;">Tidak ada peminjaman buku fisik yang aktif saat ini.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
 
-    <h3>Daftar Peminjaman Aktif Saat Ini:</h3>
-    {% if loans %}
-        <div class="admin-table-container">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        <th>ID Pinjam</th>
-                        <th>No. Anggota</th>
-                        <th>Nama Peminjam</th>
-                        <th>Judul Buku</th>
-                        <th>Tgl Pinjam</th>
-                        <th>Tgl Jatuh Tempo</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for loan in loans %}
-                    {% if not processed_loan_details or loan.loan_id != processed_loan_details.loan_id %}
-                    <tr>
-                        <td>{{ loan.loan_id }}</td>
-                        <td>{{ loan.nomor_anggota }}</td>
-                        <td>{{ loan.nama_peminjam }}</td>
-                        <td>{{ loan.judul_buku }}</td>
-                        <td>{{ loan.tanggal_pinjam.split(' ')[0] if loan.tanggal_pinjam else '-'}}</td>
-                        <td>{{ loan.tanggal_jatuh_tempo.split(' ')[0] if loan.tanggal_jatuh_tempo else '-' }}</td>
-                        <td>
-                            <form action="{{ url_for('admin_return_book', loan_id=loan.loan_id) }}" method="POST" onsubmit="return confirm('Anda yakin buku ini sudah dikembalikan?');">
-                                <button type="submit" class="actions-btn return-btn">Tandai Dikembalikan</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endif %}
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        {% if not processed_loan_details %} 
-            <p class="no-active-loans">Tidak ada peminjaman buku fisik yang sedang aktif.</p>
-        {% endif %}
+{# Bagian untuk menampilkan detail peminjaman yang baru diproses (jika ada) #}
+{% if processed_loan_details %}
+<div style="margin-top: 30px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; background-color: #f9f9f9;">
+    <h4><i class="fas fa-check-circle" style="color: green;"></i> Detail Pengembalian Buku (ID Pinjam: {{ processed_loan_details['loan_id'] }})</h4>
+    <p><strong>Judul Buku:</strong> {{ processed_loan_details['judul_buku'] }}</p>
+    <p><strong>Peminjam:</strong> {{ processed_loan_details['nama_peminjam'] }} (ID: {{ processed_loan_details['user_id'] }})</p>
+    <p><strong>Tanggal Pinjam:</strong> {{ processed_loan_details['tanggal_pinjam'].split(' ')[0] if processed_loan_details['tanggal_pinjam'] else '-'}}</p>
+    <p><strong>Tanggal Jatuh Tempo:</strong> {{ processed_loan_details['tanggal_jatuh_tempo'].split(' ')[0] if processed_loan_details['tanggal_jatuh_tempo'] else '-'}}</p>
+    <p><strong>Tanggal Kembali:</strong> {{ processed_loan_details['tanggal_kembali'].split(' ')[0] if processed_loan_details['tanggal_kembali'] else '-'}}</p>
+    <p><strong>Status:</strong> <span style="font-weight: bold; color: {% if processed_loan_details['status_pinjaman'] == 'terlambat_dikembalikan' %}red{% else %}green{% endif %};">
+        {{ processed_loan_details['status_pinjaman'] | title }}
+        </span>
+    </p>
+    <p><strong>Denda:</strong> Rp {{ "{:,.0f}".format(processed_loan_details['denda'] | int) if processed_loan_details['denda'] is not none else '0' }}</p>
+    {% if processed_loan_details['denda'] > 0 %}
+    <a href="{{ url_for('admin_edit_fine', loan_id=processed_loan_details['loan_id'], user_id=processed_loan_details['user_id']) }}" class="btn btn-warning btn-sm">Edit Denda</a>
     {% endif %}
 </div>
+{% endif %}
+
 {% endblock %}
