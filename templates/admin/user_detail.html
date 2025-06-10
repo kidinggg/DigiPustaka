@@ -1,129 +1,218 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}{{ title }} - Admin Digi Pustaka{% endblock %}
+{% block title %}Detail Pengguna: {{ selected_user.nama_lengkap }} - Admin Digi Pustaka{% endblock %}
+
+{% block page_title %}Detail Pengguna: <em>{{ selected_user.nama_lengkap }}</em>{% endblock %}
 
 {% block head_extra %}
 <style>
-    /* Styling spesifik untuk user_detail jika diperlukan, atau pindahkan ke style.css */
-    .user-info-card {
-        background-color: #f1f3f5; padding: 20px; border-radius: 8px;
-        margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        display: flex; align-items: flex-start; gap: 20px;
+    .user-detail-card, .loan-history-card, .action-requests-card {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.07);
+        margin-bottom: 25px;
     }
-    .user-info-card .profile-pic-container { flex-shrink: 0; }
-    .user-info-card .profile-pic {
-        width: 100px; height: 100px; border-radius: 50%;
-        object-fit: cover; border: 2px solid #ddd;
+    .user-detail-card h3, .loan-history-card h3, .action-requests-card h3 {
+        margin-top: 0;
+        font-size: 1.3em;
+        color: #333;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 20px;
     }
-    .user-info-card .info-text { flex-grow: 1; }
-    .user-info-card .info-text h3 { margin-top: 0; text-align: left; color: #0056b3; }
-    .user-info-card .info-text p { margin: 8px 0; font-size: 1em; }
-    .user-info-card .info-text strong { font-weight: bold; }
-    .user-info-card .info-text .user-status { font-weight: bold; }
-    .user-info-card .info-text .status-aktif { color: green; }
-    .user-info-card .info-text .status-nonaktif { color: red; }
-
-    .fines-info { margin-top:20px; padding: 10px; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; border-radius: 5px; text-align: center;}
-    .back-link-container { text-align: center; margin-top: 20px; }
-    .back-link-container a {
-        padding: 8px 15px; background-color: #6c757d; color: white; 
-        text-decoration: none; border-radius: 5px;
+    .detail-item {
+        display: flex;
+        margin-bottom: 12px;
+        font-size: 0.95em;
     }
-    .back-link-container a:hover { background-color: #5a6268; }
-    .admin-table th, .admin-table td { font-size: 0.9em; } /* Sedikit memperkecil font tabel admin jika terlalu padat */
+    .detail-item strong {
+        width: 180px; /* Lebar tetap untuk label */
+        color: #555;
+        flex-shrink: 0;
+    }
+    .detail-item span {
+        color: #333;
+    }
+    .profile-photo-container {
+        max-width: 150px;
+        margin-bottom: 15px;
+    }
+    .profile-photo-container img {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        border: 3px solid #eee;
+    }
+    .status-aktif {
+        color: #28a745;
+        font-weight: bold;
+    }
+    .status-nonaktif {
+        color: #dc3545;
+        font-weight: bold;
+    }
+    .no-data {
+        color: #777;
+        font-style: italic;
+    }
+    /* Menggunakan style .data-table dan .table-responsive-wrapper dari admin_base.html */
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="admin-content-area">
-    <h2>{{ title }}</h2>
-    
-    {% if selected_user %}
-        <div class="user-info-card">
-            <div class="profile-pic-container">
-                {% if selected_user['foto_profil_path'] %}
-                    <img src="{{ url_for('static', filename=selected_user['foto_profil_path']) }}" alt="Foto Profil" class="profile-pic">
-                {% else %}
-                    <img src="{{ url_for('static', filename='images/default_profile.png') }}" alt="Foto Default" class="profile-pic" onerror="this.style.display='none'; this.onerror=null;">
-                {% endif %}
-            </div>
-            <div class="info-text">
-                <h3>Informasi Pengguna</h3>
-                <p><strong>ID User:</strong> {{ selected_user['user_id'] }}</p>
-                <p><strong>Nama Lengkap:</strong> {{ selected_user['nama_lengkap'] }}</p>
-                <p><strong>Email:</strong> {{ selected_user['email'] }}</p>
-                {# --- PENAMBAHAN ALAMAT DAN NO TELEPON --- #}
-                <p><strong>Alamat:</strong> {{ selected_user['alamat'] if selected_user['alamat'] else '-' }}</p>
-                <p><strong>No. Telepon:</strong> {{ selected_user['no_telepon'] if selected_user['no_telepon'] else '-' }}</p>
-                {# --- AKHIR PENAMBAHAN --- #}
-                <p><strong>Nomor Anggota:</strong> {{ selected_user['nomor_anggota'] if selected_user['nomor_anggota'] else '-' }}</p>
-                <p><strong>Role:</strong> {{ selected_user['role'].capitalize() if selected_user['role'] else '-' }}</p>
-                <p><strong>Status Akun:</strong> 
-                    {% if selected_user['is_active'] == 1 %}
-                        <span class="user-status status-aktif">Aktif</span>
-                    {% else %}
-                        <span class="user-status status-nonaktif">Tidak Aktif</span>
-                    {% endif %}
-                </p>
-                {# --- PERBAIKAN TAMPILAN TANGGAL (MENGHILANGKAN STRFTIME) --- #}
-                <p><strong>Tanggal Bergabung:</strong> {{ selected_user['created_at'].split(' ')[0] if selected_user['created_at'] else '-'}}</p>
-                <p><strong>Terakhir Update Profil:</strong> {{ selected_user['updated_at'].split(' ')[0] if selected_user['updated_at'] else '-'}}</p>
-            </div>
+<div class="user-detail-card">
+    <h3>Informasi Pengguna</h3>
+    {% if selected_user.foto_profil_path %}
+        <div class="profile-photo-container">
+            <img src="{{ url_for('static', filename=selected_user.foto_profil_path) }}" alt="Foto Profil {{ selected_user.nama_lengkap }}">
         </div>
-
-        <h3>Histori Peminjaman Pengguna</h3>
-        {% if loan_history %}
-            <div class="admin-table-container">
-                <table class="admin-table">
-                    <thead>
-                        <tr>
-                            <th>ID Pinjam</th>
-                            <th>Judul Buku</th>
-                            <th>Tipe</th>
-                            <th>Tgl Pinjam</th>
-                            <th>Tgl Jatuh Tempo</th>
-                            <th>Tgl Kembali</th>
-                            <th>Status</th>
-                            <th>Denda (Rp)</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for loan in loan_history %}
-                        <tr>
-                            <td>{{ loan['loan_id'] }}</td>
-                            <td>{{ loan['judul_buku'] }}</td>
-                            <td>{{ loan['tipe_pinjaman'].capitalize() if loan['tipe_pinjaman'] else '-' }}</td>
-                            {# --- PERBAIKAN TAMPILAN TANGGAL (MENGHILANGKAN STRFTIME) --- #}
-                            <td>{{ loan['tanggal_pinjam'].split(' ')[0] if loan['tanggal_pinjam'] else '-' }}</td>
-                            <td>{{ loan['tanggal_jatuh_tempo'].split(' ')[0] if loan['tanggal_jatuh_tempo'] else '-' }}</td>
-                            <td>{{ loan['tanggal_kembali'].split(' ')[0] if loan['tanggal_kembali'] else '-' }}</td>
-                            <td class="status-{{ loan['status_pinjaman'].lower().replace(' ', '_').replace('-', '_') if loan['status_pinjaman'] else '' }}">{{ loan['status_pinjaman'].replace('_', ' ').capitalize() if loan['status_pinjaman'] else '-' }}</td>
-                            <td>{{ "{:,.0f}".format(loan['denda']|float).replace(',', '.') if loan['denda'] is not none else '0' }}</td>
-                            <td>
-                                {% if loan['tipe_pinjaman'] == 'fisik' and (loan['status_pinjaman'] == 'dikembalikan' or loan['status_pinjaman'] == 'terlambat_dikembalikan') %}
-                                    <a href="{{ url_for('admin_edit_fine', loan_id=loan['loan_id'], user_id=selected_user['user_id']) }}" class="actions-btn edit-fine-btn">Edit Denda</a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% if total_unpaid_fines_for_user > 0 %}
-            <div class="fines-info">
-                <strong>Total Denda Tercatat Pengguna Ini: Rp {{ "{:,.0f}".format(total_unpaid_fines_for_user|float).replace(',', '.') }}</strong>
-            </div>
-            {% endif %}
-        {% else %}
-            <p class="no-history">Pengguna ini belum memiliki riwayat peminjaman.</p>
-        {% endif %}
-
     {% else %}
-        <p>Pengguna tidak ditemukan.</p>
+        <p class="no-data"><em>Belum ada foto profil.</em></p>
     {% endif %}
-    <div class="back-link-container">
-        <a href="{{ url_for('admin_list_users') }}">Kembali ke Daftar Pengguna</a>
+    <div class="detail-item">
+        <strong>ID Pengguna:</strong>
+        <span>{{ selected_user.user_id }}</span>
     </div>
+    <div class="detail-item">
+        <strong>Nama Lengkap:</strong>
+        <span>{{ selected_user.nama_lengkap }}</span>
+    </div>
+    <div class="detail-item">
+        <strong>Email:</strong>
+        <span>{{ selected_user.email }}</span>
+    </div>
+    <div class="detail-item">
+        <strong>Nomor Anggota:</strong>
+        <span>{{ selected_user.nomor_anggota }}</span>
+    </div>
+    <div class="detail-item">
+        <strong>Role:</strong>
+        <span>{{ selected_user.role | title }}</span>
+    </div>
+    <div class="detail-item">
+        <strong>Status Akun:</strong>
+        <span class="status-{% if selected_user.is_active == 1 %}aktif{% else %}nonaktif{% endif %}">
+            {% if selected_user.is_active == 1 %}Aktif{% else %}Nonaktif{% endif %}
+        </span>
+    </div>
+    <div class="detail-item">
+        <strong>Tanggal Daftar:</strong>
+        <span>{{ selected_user.tgl_daftar.split(' ')[0] if selected_user.tgl_daftar else '-' }}</span>
+    </div>
+    <div class="detail-item">
+        <strong>Alamat:</strong>
+        <span>{{ selected_user.alamat | default('Belum diisi') }}</span>
+    </div>
+    <div class="detail-item">
+        <strong>No. Telepon:</strong>
+        <span>{{ selected_user.no_telepon | default('Belum diisi') }}</span>
+    </div>
+    <div class="detail-item">
+        <strong>Terakhir Diperbarui:</strong>
+        <span>{{ selected_user.updated_at.split('.')[0] if selected_user.updated_at else '-' }}</span>
+    </div>
+    <div class="detail-item">
+        <strong>Total Denda Belum Dibayar:</strong>
+        <span style="color: {% if total_unpaid_fines_for_user > 0 %}#dc3545{% else %}#28a745{% endif %}; font-weight: bold;">
+            Rp {{ "{:,.0f}".format(total_unpaid_fines_for_user | int) }}
+        </span>
+    </div>
+</div>
+
+<div class="loan-history-card">
+    <h3>Histori Peminjaman Pengguna</h3>
+    {% if loan_history %}
+        {# --- PERBAIKAN: Menambahkan wrapper dan kelas tabel --- #}
+        <div class="table-responsive-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID Pinjam</th>
+                        <th>Judul Buku</th>
+                        <th>Tipe</th>
+                        <th>Tgl Pinjam</th>
+                        <th>Tgl Jatuh Tempo</th>
+                        <th>Tgl Kembali</th>
+                        <th>Status</th>
+                        <th class="text-right">Denda (Rp)</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in loan_history %}
+                    <tr>
+                        <td>{{ loan.loan_id }}</td>
+                        <td>{{ loan.judul_buku }}</td>
+                        <td>{{ loan.tipe_pinjaman | title }}</td>
+                        <td>{{ loan.tanggal_pinjam.split(' ')[0] if loan.tanggal_pinjam else '-' }}</td>
+                        <td>{{ loan.tanggal_jatuh_tempo.split(' ')[0] if loan.tanggal_jatuh_tempo else '-' }}</td>
+                        <td>{{ loan.tanggal_kembali.split(' ')[0] if loan.tanggal_kembali else '-' }}</td>
+                        <td>
+                            <span class="status-text status-{{ loan.status_pinjaman }}">
+                                {{ loan.status_pinjaman | replace('_', ' ') | title }}
+                            </span>
+                        </td>
+                        <td class="text-right">{{ "{:,.0f}".format(loan.denda | int) if loan.denda is not none else '0' }}</td>
+                        <td class="action-buttons">
+                            {% if loan.tipe_pinjaman == 'fisik' and loan.status_pinjaman in ['dikembalikan', 'terlambat_dikembalikan'] %}
+                                <a href="{{ url_for('admin_edit_fine', loan_id=loan.loan_id, user_id=selected_user.user_id) }}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-edit"></i> Edit Denda
+                                </a>
+                            {% elif loan.status_pinjaman == 'dipinjam' %}
+                                <span class="badge bg-info">Aktif</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="no-data">Pengguna ini belum memiliki histori peminjaman.</p>
+    {% endif %}
+</div>
+
+{% if user_action_requests %}
+<div class="action-requests-card">
+    <h3>Riwayat Permintaan Aksi untuk Pengguna Ini</h3>
+    <div class="table-responsive-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID Req.</th>
+                    <th>Aksi Diminta</th>
+                    <th>Diminta Oleh</th>
+                    <th>Tgl Minta</th>
+                    <th>Status</th>
+                    <th>Diproses Oleh (Admin)</th>
+                    <th>Tgl Proses</th>
+                    <th>Catatan Admin</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in user_action_requests %}
+                <tr>
+                    <td>{{ req['request_id'] }}</td>
+                    <td>{{ req['action_type'] | replace('_', ' ') | title }}</td>
+                    <td>{{ req['requester_name'] }}</td>
+                    <td>{{ req['requested_at'].split('.')[0] if req['requested_at'] else '-' }}</td>
+                    <td><span class="status-{{ req['status'] }}">{{ req['status'] | title }}</span></td>
+                    <td>{{ req['admin_processor_name'] | default('-') }}</td>
+                    <td>{{ req['processed_at'].split('.')[0] if req['processed_at'] else '-' }}</td>
+                    <td><div class="nl2br-text">{{ req['admin_notes'] | default('-') | nl2br }}</div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+
+<div style="margin-top: 30px;">
+    <a href="{{ url_for('admin_list_users') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Kembali ke Daftar Pengguna</a>
 </div>
 {% endblock %}

@@ -9,48 +9,115 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th>ID User</th>
+                <th>ID</th>
                 <th>Nama Lengkap</th>
                 <th>Email</th>
                 <th>No. Anggota</th>
                 <th>Role</th>
                 <th>Status Akun</th>
                 <th>Tgl Daftar</th>
-                <th>Aksi</th>
+                <th style="min-width: 350px;">Aksi</th>
             </tr>
         </thead>
         <tbody>
             {% if users %}
-                {% for user_row in users %} {# Mengganti 'user' menjadi 'user_row' untuk menghindari konflik dengan g.user #}
+                {% for user_row in users %}
                 <tr>
                     <td>{{ user_row['user_id'] }}</td>
-                    <td>{{ user_row['nama_lengkap'] }}</td>
+                    <td>
+                        {{ user_row['nama_lengkap'] }}
+                        {% if user_row['pending_requests_count'] > 0 %}
+                            <span class="badge bg-info" title="{{ user_row['pending_requests_count'] }} permintaan pending">{{ user_row['pending_requests_count'] }}</span>
+                        {% endif %}
+                    </td>
                     <td>{{ user_row['email'] }}</td>
                     <td>{{ user_row['nomor_anggota'] }}</td>
                     <td>{{ user_row['role'] | title }}</td>
                     <td>{% if user_row['is_active'] == 1 %}Aktif{% else %}Nonaktif{% endif %}</td>
-                    {# Menggunakan 'created_at' dan memformatnya #}
-                    <td>{{ user_row['created_at'].split(' ')[0] if user_row['created_at'] else '-' }}</td>
+                    <td>{{ user_row['tgl_daftar'].split(' ')[0] if user_row['tgl_daftar'] else '-' }}</td>
                     <td class="action-buttons">
-                        <a href="{{ url_for('admin_user_detail', user_id=user_row['user_id']) }}" class="btn btn-detail">Detail</a>
+                        <a href="{{ url_for('admin_user_detail', user_id=user_row['user_id']) }}" class="btn btn-detail btn-sm">Detail</a>
                         
-                        {# Tombol aksi hanya jika bukan pengguna yang sedang login #}
-                        {% if user_row['user_id'] != g.user.user_id %} 
-                            {# Tombol untuk mengubah role #}
-                            <form action="{{ url_for('admin_toggle_user_role', user_id=user_row['user_id']) }}" method="post" style="display: inline;">
-                                <button type="submit" class="btn {% if user_row['role'] == 'user' %}btn-admin{% else %}btn-warning{% endif %}">
-                                    {% if user_row['role'] == 'user' %}Jadikan Admin{% else %}Jadikan User{% endif %}
-                                </button>
-                            </form>
+                        {% if user_row['user_id'] != g_user.user_id %} {# Aksi tidak untuk diri sendiri #}
                             
-                            {# Tombol untuk mengubah status aktif/nonaktif #}
-                            <form action="{{ url_for('admin_toggle_user_active_status', user_id=user_row['user_id']) }}" method="post" style="display: inline;">
-                                <button type="submit" class="btn {% if user_row['is_active'] == 1 %}btn-danger{% else %}btn-admin{% endif %}">
-                                    {% if user_row['is_active'] == 1 %}Nonaktifkan{% else %}Aktifkan{% endif %}
-                                </button>
-                            </form>
+                            {# --- AKSI UNTUK ADMIN --- #}
+                            {# Pastikan endpoint 'admin_toggle_user_role' dan 'admin_toggle_user_active_status' #}
+                            {# didefinisikan dengan benar di app.py dan menerima 'user_id' sebagai parameter path <int:user_id> #}
+                            {% if g_user.role == 'admin' %}
+                                {# Tombol Ubah Role oleh Admin #}
+                                {% if user_row['role'] == 'anggota' %}
+                                    <form action="{{ url_for('admin_toggle_user_role', user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                        <input type="hidden" name="action" value="make_pustakawan">
+                                        <button type="submit" class="btn btn-warning btn-sm">Jadikan Pustakawan</button>
+                                    </form>
+                                    <form action="{{ url_for('admin_toggle_user_role', user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                        <input type="hidden" name="action" value="make_admin">
+                                        <button type="submit" class="btn btn-promote-admin btn-sm">Jadikan Admin</button>
+                                    </form>
+                                {% elif user_row['role'] == 'pustakawan' %}
+                                    <form action="{{ url_for('admin_toggle_user_role', user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                        <input type="hidden" name="action" value="make_anggota">
+                                        <button type="submit" class="btn btn-warning btn-sm">Jadikan Anggota</button>
+                                    </form>
+                                    <form action="{{ url_for('admin_toggle_user_role', user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                        <input type="hidden" name="action" value="make_admin">
+                                        <button type="submit" class="btn btn-promote-admin btn-sm">Jadikan Admin</button>
+                                    </form>
+                                {% elif user_row['role'] == 'admin' %}
+                                    <form action="{{ url_for('admin_toggle_user_role', user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                        <input type="hidden" name="action" value="revoke_admin_to_pustakawan">
+                                        <button type="submit" class="btn btn-warning btn-sm">Jadikan Pustakawan</button>
+                                    </form>
+                                    <form action="{{ url_for('admin_toggle_user_role', user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                        <input type="hidden" name="action" value="revoke_admin_to_anggota">
+                                        <button type="submit" class="btn btn-secondary btn-sm">Jadikan Anggota</button>
+                                    </form>
+                                {% endif %}
+
+                                {# Tombol Aktif/Nonaktif oleh Admin #}
+                                <form action="{{ url_for('admin_toggle_user_active_status', user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                    <button type="submit" class="btn {% if user_row['is_active'] == 1 %}btn-danger{% else %}btn-success{% endif %} btn-sm">
+                                        {% if user_row['is_active'] == 1 %}Nonaktifkan{% else %}Aktifkan{% endif %}
+                                    </button>
+                                </form>
+                            
+                            {# --- AKSI UNTUK PUSTAKAWAN (PENGAJUAN) --- #}
+                            {# Pastikan endpoint 'admin_request_user_action' didefinisikan dengan benar di app.py #}
+                            {# dan menerima 'target_user_id' sebagai parameter path <int:target_user_id> #}
+                            {% elif g_user.role == 'pustakawan' %}
+                                {# Pustakawan hanya bisa mengajukan untuk Anggota atau Pustakawan lain (tergantung logika backend) #}
+                                {% if user_row['role'] == 'anggota' %}
+                                    {% if user_row['is_active'] == 1 %}
+                                        <form action="{{ url_for('admin_request_user_action', target_user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                            <input type="hidden" name="action_type" value="deactivate_account">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Ajukan Nonaktifkan Akun">Ajukan Nonaktif</button>
+                                        </form>
+                                    {% else %}
+                                        <form action="{{ url_for('admin_request_user_action', target_user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                            <input type="hidden" name="action_type" value="activate_account">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Ajukan Aktifkan Akun">Ajukan Aktifkan</button>
+                                        </form>
+                                    {% endif %}
+                                    <form action="{{ url_for('admin_request_user_action', target_user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                        <input type="hidden" name="action_type" value="change_role_to_pustakawan">
+                                        <button type="submit" class="btn btn-warning btn-sm" title="Ajukan Jadikan Pustakawan">Ajukan Jadi Pustakawan</button>
+                                    </form>
+                                {% elif user_row['role'] == 'pustakawan' and user_row['user_id'] != g_user.user_id %}
+                                     {% if user_row['is_active'] == 1 %}
+                                        <form action="{{ url_for('admin_request_user_action', target_user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                            <input type="hidden" name="action_type" value="deactivate_account">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Ajukan Nonaktifkan Akun Pustakawan Ini">Ajukan Nonaktif</button>
+                                        </form>
+                                    {% else %}
+                                        <form action="{{ url_for('admin_request_user_action', target_user_id=user_row['user_id']) }}" method="post" style="display: inline;">
+                                            <input type="hidden" name="action_type" value="activate_account">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Ajukan Aktifkan Akun Pustakawan Ini">Ajukan Aktifkan</button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
+                            {% endif %}
                         {% else %}
-                            (Anda)
+                            <span class="badge bg-secondary">(Anda)</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -63,4 +130,10 @@
         </tbody>
     </table>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Jika ada script khusus untuk halaman ini, tambahkan di sini
+</script>
 {% endblock %}

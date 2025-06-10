@@ -1,232 +1,118 @@
 {% extends "admin/admin_base.html" %}
 
-{# Judul halaman akan diambil dari variabel 'title' yang di-pass dari app.py ke admin_base.html #}
-{% block title %}{{ title }} - Admin Digi Pustaka{% endblock %}
+{% block title %}Dashboard Staf - Digi Pustaka{% endblock %}
 
-{% block head_extra %}
-<style>
-    /* Styling spesifik untuk dashboard admin yang belum ada di style.css global */
-    /* Sebaiknya semua styling ini dipindahkan ke style.css nanti */
-
-    .admin-content-area .page-title { /* Override jika ingin styling judul halaman khusus di dashboard */
-        /* Contoh: margin-top: 0; margin-bottom: 20px; text-align: left; font-size: 1.8em; */
-        /* Untuk sekarang, kita akan mengandalkan title dari admin_base.html */
-        display: none; /* Sembunyikan h2.page-title bawaan dari admin_base jika tidak ingin ada judul konten lagi */
-    }
-
-    .dashboard-greeting {
-        text-align: left; /* Ubah ke kiri */
-        font-size: 1.25em; /* Sedikit perbesar */
-        margin-bottom: 25px; /* Jarak ke statistik */
-        padding: 15px 20px;
-        background-color: #ffffff; /* Latar putih */
-        border-radius: 8px;
-        color: #2d3748; /* Warna teks lebih gelap */
-        font-weight: 500;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        border-left: 5px solid #5A67D8; /* Aksen warna header admin */
-    }
-    .dashboard-greeting strong {
-        color: #0056b3; /* Warna nama admin */
-    }
-
-    .dashboard-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); 
-        gap: 20px;
-        margin-bottom: 35px;
-    }
-    .stat-card {
-        background-color: #fff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.07);
-        text-align: center;
-        border-top: 4px solid #4a5568; /* Aksen warna header admin */
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-    }
-    .stat-card .stat-icon { /* Untuk ikon di atas judul statistik */
-        font-size: 2.5em;
-        color: #5A67D8;
-        margin-bottom: 10px;
-        display: block;
-    }
-    .stat-card h4 {
-        margin-top: 0;
-        font-size: 1.1em; 
-        color: #333; /* Warna judul kartu lebih gelap */
-        margin-bottom: 8px;
-        font-weight: 600;
-    }
-    .stat-card .stat-value {
-        font-size: 2.8em; 
-        font-weight: 700; 
-        color: #007bff; /* Warna angka statistik lebih cerah */
-        margin: 5px 0 10px 0;
-        display: block;
-    }
-    .stat-card .stat-description {
-        font-size: 0.9em;
-        color: #6c757d;
-    }
-
-    .admin-menu-grid { 
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
-        gap: 18px;
-        margin-top: 15px; /* Jarak dari subjudul */
-    }
-    .admin-menu-grid .menu-item a {
-        display: flex; 
-        flex-direction: column; /* Ikon di atas, teks di bawah */
-        align-items: center;
-        justify-content: center;
-        padding: 20px 15px; 
-        background-color: #f8f9fa; /* Warna dasar tombol menu lebih terang */
-        color: #343a40; 
-        border: 1px solid #dee2e6;
-        border-radius: 8px; 
-        text-decoration: none;
-        font-weight: 500; 
-        font-size: 1em; 
-        text-align: center;
-        transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        min-height: 120px; /* Tinggi minimum untuk kartu menu */
-    }
-    .admin-menu-grid .menu-item a:hover {
-        background-color: #5A67D8; /* Warna hover menu admin */
-        color: white;
-        transform: translateY(-3px); 
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border-color: #5A67D8;
-    }
-    .admin-menu-grid .menu-item a .menu-icon {
-        font-size: 2.2em; 
-        margin-bottom: 12px;
-        color: #5A67D8; /* Warna ikon default */
-        transition: color 0.2s ease;
-    }
-    .admin-menu-grid .menu-item a:hover .menu-icon {
-        color: white; /* Warna ikon saat tombol di-hover */
-    }
-
-    .recent-books-section {
-        margin-top: 40px;
-        background-color: #fff;
-        padding: 25px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    }
-    .recent-books-section h3.section-subtitle {
-        margin-top:0; 
-        text-align: left;
-        border-bottom: 1px solid #e0e0e0; /* Garis bawah lebih halus */
-        padding-bottom: 8px;
-        font-size: 1.4em; /* Ukuran subjudul disesuaikan */
-    }
-    .recent-books-list {
-        list-style-type: none;
-        padding: 0;
-    }
-    .recent-books-list li {
-        padding: 12px 0;
-        margin-bottom: 0;
-        border-bottom: 1px solid #f1f1f1;
-        font-size: 0.95em;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .recent-books-list li:last-child {
-        border-bottom: none;
-    }
-    .recent-books-list li strong {
-        color: #0056b3;
-    }
-    .recent-books-list li .date-added {
-        font-size: 0.85em;
-        color: #718096;
-        background-color: #e9ecef;
-        padding: 3px 7px;
-        border-radius: 3px;
-    }
-</style>
+{% block page_title %}
+    Dashboard 
+    {% if g_user.role == 'admin' %}
+        Admin Utama
+    {% elif g_user.role == 'pustakawan' %}
+        Pustakawan
+    {% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="admin-content-area">
-    {# Judul halaman sekarang diambil dari block title di admin_base.html #}
-    {# <h2 class="page-title">{{ title }}</h2> #} 
-
-    <p class="dashboard-greeting">
-        Selamat datang di Panel Admin, <strong>{{ g.user.nama_lengkap }}</strong>!
-    </p>
-
-    <h3 class="section-subtitle">Ringkasan Sistem</h3>
-    <div class="dashboard-stats">
-        <div class="stat-card">
-            <span class="stat-icon">📚</span>
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <div class="stat-icon icon-books"><i class="fas fa-book"></i></div>
+        <div class="stat-info">
             <h4>Total Buku</h4>
-            <p class="stat-value">{{ total_buku }}</p>
-            <p class="stat-description">Jumlah semua buku di perpustakaan.</p>
+            <div class="stat-value">{{ total_buku | default(0) }}</div>
         </div>
-        <div class="stat-card">
-            <span class="stat-icon">👥</span>
-            <h4>Total Anggota</h4>
-            <p class="stat-value">{{ total_user }}</p>
-            <p class="stat-description">Jumlah anggota terdaftar (non-admin).</p>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-users"><i class="fas fa-users"></i></div>
+        <div class="stat-info">
+            <h4>Anggota Aktif</h4>
+            <div class="stat-value">{{ total_anggota_aktif | default(0) }}</div>
         </div>
-        <div class="stat-card">
-            <span class="stat-icon">🔄</span>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-loans"><i class="fas fa-exchange-alt"></i></div>
+        <div class="stat-info">
             <h4>Peminjaman Aktif</h4>
-            <p class="stat-value">{{ total_peminjaman_aktif }}</p>
-            <p class="stat-description">Buku fisik yang sedang dipinjam.</p>
+            <div class="stat-value">{{ total_peminjaman_aktif | default(0) }}</div>
         </div>
     </div>
-
-    <h3 class="section-subtitle">Menu Navigasi Admin</h3>
-    <div class="admin-menu-grid">
-        <div class="menu-item"><a href="{{ url_for('add_book') }}"><span class="menu-icon">➕</span>Tambah Buku Baru</a></div>
-        <div class="menu-item"><a href="{{ url_for('admin_list_books') }}"><span class="menu-icon">📖</span>Lihat Daftar Buku</a></div>
-        <div class="menu-item"><a href="{{ url_for('admin_active_loans') }}"><span class="menu-icon">🔁</span>Proses Pengembalian</a></div>
-        <div class="menu-item"><a href="{{ url_for('admin_reports') }}"><span class="menu-icon">📊</span>Lihat Laporan</a></div>
-        <div class="menu-item"><a href="{{ url_for('admin_list_users') }}"><span class="menu-icon">👤</span>Manajemen Pengguna</a></div>
+    <div class="stat-card">
+        <div class="stat-icon icon-pending"><i class="fas fa-hourglass-half"></i></div>
+        <div class="stat-info">
+            <h4>Permintaan Pinjaman</h4>
+            <div class="stat-value">{{ total_permintaan_pending | default(0) }}</div>
+        </div>
     </div>
-
-    {% if recent_added_books %}
-    <div class="recent-books-section">
-        <h3 class="section-subtitle">
-            {% set count_recent = recent_added_books|length %}
-            {% if count_recent == 0 %}
-                Belum Ada Buku Baru Ditambahkan
-            {% elif count_recent == 1 %}
-                1 Buku Baru Ditambahkan
-            {% else %}
-                {{ count_recent }} Buku Baru Ditambahkan (Maks. 5 Terbaru)
-            {% endif %}
-        </h3>
-        <ul class="recent-books-list">
-            {% for book in recent_added_books %}
-                <li>
-                    <span>
-                        <strong>{{ book.judul }}</strong>
-                        {% if book.pengarang %} (oleh {{ book.pengarang }}){% endif %}
-                    </span>
-                    <span class="date-added">
-                        {{ book.created_at.split(' ')[0] if book.created_at else '-' }}
-                    </span>
-                </li>
-            {% else %}
-                {# Pesan ini sekarang ditangani oleh kondisi di atas #}
-            {% endfor %}
-        </ul>
+    {% if g_user.role == 'admin' %}
+    <div class="stat-card">
+        <div class="stat-icon icon-librarians"><i class="fas fa-user-tie"></i></div>
+        <div class="stat-info">
+            <h4>Pustakawan Aktif</h4>
+            <div class="stat-value">{{ total_pustakawan_aktif | default(0) }}</div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon icon-action-requests"><i class="fas fa-tasks"></i></div>
+        <div class="stat-info">
+            <h4>Permintaan Aksi Pending</h4>
+            <div class="stat-value">{{ total_user_action_requests_pending | default(0) }}</div>
+        </div>
     </div>
     {% endif %}
-
 </div>
+
+{# Grid Menu Akses Cepat #}
+<div class="admin-menu-grid">
+    <div class="menu-item">
+        <a href="{{ url_for('admin_add_book') }}">
+            <span class="menu-icon icon-add"><i class="fas fa-plus-circle"></i></span>Tambah Buku Baru
+        </a>
+    </div>
+    <div class="menu-item">
+        <a href="{{ url_for('admin_list_books') }}">
+            <span class="menu-icon icon-list"><i class="fas fa-list-ul"></i></span>Daftar Buku
+        </a>
+    </div>
+     <div class="menu-item">
+        <a href="{{ url_for('admin_pending_loans') }}">
+            <span class="menu-icon icon-confirm"><i class="fas fa-user-clock"></i></span>Konfirmasi Peminjaman
+        </a>
+    </div>
+    <div class="menu-item">
+        <a href="{{ url_for('admin_active_loans') }}">
+            <span class="menu-icon icon-active-loans"><i class="fas fa-book-reader"></i></span>Peminjaman Aktif
+        </a>
+    </div>
+    {% if g_user.role == 'admin' %}
+        <div class="menu-item">
+            <a href="{{ url_for('admin_list_users') }}">
+                <span class="menu-icon icon-users-manage"><i class="fas fa-users-cog"></i></span>Manajemen Pengguna
+            </a>
+        </div>
+        <div class="menu-item">
+            <a href="{{ url_for('admin_reports') }}">
+                <span class="menu-icon icon-reports"><i class="fas fa-chart-pie"></i></span>Lihat Laporan
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<div class="recent-activities">
+    <h3>Aktivitas Terbaru</h3>
+    <ul class="activity-list">
+        {% if recent_activities %}
+            {% for activity in recent_activities %}
+            <li>
+                {{ activity.description }}
+                {% if activity.timestamp_dt %}
+                <span class="timestamp">{{ activity.timestamp_dt.strftime('%d %B %Y, %H:%M') }}</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        {% else %}
+            <li class="no-data" style="background-color: transparent; box-shadow: none;">
+                Belum ada aktivitas terbaru untuk ditampilkan.
+            </li>
+        {% endif %}
+    </ul>
+</div>
+
 {% endblock %}

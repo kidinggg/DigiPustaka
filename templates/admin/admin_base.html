@@ -4,255 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin Digi Pustaka{% endblock %}</title>
-    {# Font Awesome untuk ikon #}
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    
-    <style>
-        /* CSS LENGKAP UNTUK ADMIN LAYOUT */
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            font-size: 16px; /* Ukuran font dasar yang lebih nyaman */
-        }
-
-        /* Header Admin */
-        .admin-header-main { 
-            background-color: #00A6FF; 
-            color: white;
-            padding: 0 20px; 
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            flex-shrink: 0;
-            height: 65px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: fixed; 
-            top: 0;
-            left: 0; 
-            right: 0;
-            z-index: 1030; 
-        }
-        .sidebar-toggle-btn { 
-            background: none; border: none; color: white;
-            font-size: 1.5em; 
-            margin-right: 15px; 
-            cursor: pointer; padding: 8px; line-height: 1; 
-        }
-        .sidebar-toggle-btn:hover {
-            background-color: rgba(255,255,255,0.15);
-            border-radius: 4px;
-        }
-        .admin-header-main .site-title {
-            font-size: 1.5em; 
-            font-weight: 600; 
-            margin: 0;
-        }
-        
-        /* Body Wrapper */
-        .admin-body-container {
-            display: flex;
-            flex-grow: 1;
-            margin-top: 65px; 
-        }
-
-        /* Sidebar Admin */
-        .admin-sidebar { 
-            width: 260px;
-            background-color: #ffffff; 
-            flex-shrink: 0;
-            border-right: 1px solid #e9ecef; 
-            box-shadow: 2px 0 6px rgba(0,0,0,0.05); 
-            transition: width 0.3s ease, transform 0.3s ease; 
-            position: fixed; 
-            left: 0; top: 65px; bottom: 0; 
-            z-index: 1020;
-            display: flex; 
-            flex-direction: column; 
-            overflow-y: auto;
-        }
-        
-        .admin-sidebar-header { 
-            padding: 20px 25px; 
-            border-bottom: 1px solid #f0f2f5; 
-        }
-        .admin-sidebar-header .sidebar-site-title {
-            font-size: 1.25em; font-weight: 600; color: #343a40; margin: 0;
-        }
-        .admin-sidebar-header .sidebar-site-subtitle {
-            font-size: 0.85em; color: #6c757d; margin: 0;
-        }
-
-        .admin-sidebar nav { flex-grow: 1; margin-top: 10px; }
-        .admin-sidebar nav ul { list-style-type: none; padding: 0; margin: 0; }
-        .admin-sidebar nav ul li a {
-            display: flex; align-items: center;
-            padding: 13px 25px; 
-            color: #495057; text-decoration: none;
-            font-size: 0.98em; /* Font menu lebih besar */
-            border-left: 4px solid transparent; 
-            transition: all 0.2s ease;
-        }
-        .admin-sidebar nav ul li a:hover {
-            background-color: #f8f9fa; color: #007bff; 
-        }
-        .admin-sidebar nav ul li a.active { 
-            background-color: #e9f5ff; color: #0056b3; 
-            font-weight: 600; border-left-color: #007bff; 
-        }
-        .admin-sidebar nav ul li a .menu-icon { 
-            margin-right: 15px; width: 22px; text-align: center;
-            font-size: 1.1em; color: #6c757d; transition: color 0.2s ease;
-        }
-        .admin-sidebar nav ul li a.active .menu-icon,
-        .admin-sidebar nav ul li a:hover .menu-icon {
-            color: #007bff; 
-        }
-        
-        .sidebar-footer-links { margin-top: auto; padding: 10px 0; border-top: 1px solid #e9ecef; }
-        .sidebar-footer-links ul { list-style-type: none; padding: 0; margin: 0; }
-        .sidebar-footer-links ul li a {
-            display: flex; align-items: center;
-            padding: 13px 25px; 
-            color: #495057; text-decoration: none;
-            font-size: 0.98em;
-            transition: all 0.2s ease;
-        }
-        .sidebar-footer-links ul li a:hover {
-            background-color: #f8f9fa; color: #007bff;
-        }
-         .sidebar-footer-links ul li a:hover .menu-icon {
-            color: #007bff;
-        }
-
-
-        /* Konten Utama Admin */
-        .admin-content { 
-            flex-grow: 1;
-            padding: 25px 30px; 
-            background-color: #f0f2f5; 
-            overflow-y: auto;
-            margin-left: 260px;
-            transition: margin-left 0.3s ease; 
-        }
-        .admin-content .page-header-title {
-            font-size: 1.8em; color: #343a40; 
-            margin-top: 0; margin-bottom: 25px; 
-        }
-        .content-wrapper {
-            background-color: #ffffff;
-            padding: 25px; border-radius: 8px;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-        }
-
-        /* Style untuk Tabel Data */
-        .table-responsive-wrapper {
-            width: 100%; overflow-x: auto;
-        }
-        .data-table {
-            width: 100%; border-collapse: collapse; margin-top: 20px;
-        }
-        .data-table th, .data-table td {
-            padding: 14px 16px; border: 1px solid #dee2e6;
-            text-align: left; font-size: 0.95em; 
-            vertical-align: middle;
-        }
-        .data-table thead th {
-            background-color: #f1f3f5; font-weight: 600; color: #495057;
-        }
-        .data-table tbody tr:nth-of-type(even) { background-color: #f8f9fa; }
-        .data-table tbody tr:hover { background-color: #f1f7ff; }
-        .action-buttons a, .action-buttons button, .action-buttons .btn {
-            text-decoration: none; color: #fff;
-            padding: 6px 12px; border-radius: 5px; margin-right: 5px;
-            border: none; cursor: pointer; font-size: 0.9em;
-            display: inline-block; margin-bottom: 5px;
-        }
-        .btn-detail { background-color: #007bff; }
-        .btn-admin { background-color: #28a745; }
-        .btn-danger { background-color: #dc3545; }
-        .btn-warning { background-color: #ffc107; color: #212529;}
-
-
-        /* Footer Admin */
-        .admin-footer { 
-            text-align: center; padding: 15px; 
-            background-color: #ffffff; color: #6c757d; 
-            font-size: 0.85em; border-top: 1px solid #e9ecef; 
-            margin-left: 260px; 
-            transition: margin-left 0.3s ease;
-        }
-        
-        /* RESPONSIVE & SIDEBAR MINIMIZED */
-        .admin-sidebar.desktop-minimized { width: 72px; }
-        .admin-sidebar.desktop-minimized .admin-sidebar-header .sidebar-site-title,
-        .admin-sidebar.desktop-minimized .admin-sidebar-header .sidebar-site-subtitle,
-        .admin-sidebar.desktop-minimized nav ul li a .link-text,
-        .admin-sidebar.desktop-minimized .sidebar-footer-links .link-text {
-            display: none;
-        }
-        .admin-sidebar.desktop-minimized nav ul li a,
-        .admin-sidebar.desktop-minimized .sidebar-footer-links ul li a {
-            justify-content: center;
-            padding-left:0;
-            padding-right:0;
-        }
-         .admin-sidebar.desktop-minimized nav ul li a .menu-icon,
-         .admin-sidebar.desktop-minimized .sidebar-footer-links ul li a .menu-icon {
-            margin-right: 0;
-            font-size: 1.3em;
-        }
-
-
-        .admin-content.sidebar-minimized,
-        .admin-footer.sidebar-minimized {
-            margin-left: 72px;
-        }
-
-        .mobile-overlay {
-            display: none; position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.4); z-index: 1015; /* Di bawah sidebar mobile */
-        }
-        .mobile-overlay.active { display: block; }
-
-
-        @media (max-width: 768px) {
-            .admin-sidebar { 
-                transform: translateX(-100%); 
-                width: 250px; 
-                z-index: 1040; /* Di atas overlay */
-            }
-            .admin-sidebar.mobile-open { 
-                transform: translateX(0);
-            }
-             /* Abaikan state minimized di mobile, selalu tampilkan teks */
-            .admin-sidebar.desktop-minimized { width: 250px; }
-            .admin-sidebar.desktop-minimized .admin-sidebar-header .sidebar-site-title,
-            .admin-sidebar.desktop-minimized .admin-sidebar-header .sidebar-site-subtitle,
-            .admin-sidebar.desktop-minimized nav ul li a .link-text,
-            .admin-sidebar.desktop-minimized .sidebar-footer-links .link-text { 
-                display: block; 
-            }
-            .admin-sidebar.desktop-minimized nav ul li a,
-            .admin-sidebar.desktop-minimized .sidebar-footer-links ul li a {
-                justify-content: flex-start; 
-                padding: 13px 25px;
-            }
-             .admin-sidebar.desktop-minimized nav ul li a .menu-icon,
-             .admin-sidebar.desktop-minimized .sidebar-footer-links ul li a .menu-icon {
-                margin-right: 15px; 
-                font-size: 1.1em; 
-            }
-
-            .admin-content, .admin-footer { 
-                margin-left: 0 !important; 
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
     {% block head_extra %}{% endblock %}
 </head>
 <body>
@@ -267,21 +20,34 @@
         <aside class="admin-sidebar" id="adminSidebar"> 
             <div class="admin-sidebar-header">
                 <h2 class="sidebar-site-title">Digi Pustaka</h2>
-                <p class="sidebar-site-subtitle">Admin Menu</p>
+                <p class="sidebar-site-subtitle">
+                    {% if g_user.role == 'admin' %}
+                        Panel Super Admin
+                    {% elif g_user.role == 'pustakawan' %}
+                        Panel Pustakawan
+                    {% else %} 
+                        Menu Staf
+                    {% endif %}
+                </p>
             </div>
             <nav>
                 <ul>
-                    {# --- url_for disesuaikan dengan nama fungsi di app.py --- #}
-                    <li><a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' else '' }}"><span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span><span class="link-text">Dashboard</span></a></li>
-                    <li><a href="{{ url_for('admin_list_books') }}" class="{{ 'active' if request.endpoint in ['admin_list_books', 'admin_add_book', 'admin_edit_book'] else '' }}"><span class="menu-icon"><i class="fas fa-book"></i></span><span class="link-text">Manajemen Buku</span></a></li>
-                    <li><a href="{{ url_for('admin_list_users') }}" class="{{ 'active' if request.endpoint in ['admin_list_users', 'admin_user_detail'] else '' }}"><span class="menu-icon"><i class="fas fa-users"></i></span><span class="link-text">Manajemen User</span></a></li>
-                    <li><a href="{{ url_for('admin_active_loans') }}" class="{{ 'active' if request.endpoint in ['admin_active_loans', 'admin_edit_fine'] else '' }}"><span class="menu-icon"><i class="fas fa-exchange-alt"></i></span><span class="link-text">Peminjaman Aktif</span></a></li>
-                    <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}"><span class="menu-icon"><i class="fas fa-chart-line"></i></span><span class="link-text">Laporan</span></a></li>
+                    {% if g_user.role in ['admin', 'pustakawan'] %}
+                        <li><a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' else '' }}"><span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span><span class="link-text">Dashboard</span></a></li>
+                        <li><a href="{{ url_for('admin_list_books') }}" class="{{ 'active' if request.endpoint in ['admin_list_books', 'admin_add_book', 'admin_edit_book'] else '' }}"><span class="menu-icon"><i class="fas fa-book"></i></span><span class="link-text">Manajemen Buku</span></a></li>
+                        <li><a href="{{ url_for('admin_pending_loans') }}" class="{{ 'active' if request.endpoint == 'admin_pending_loans' else '' }}"><span class="menu-icon"><i class="fas fa-hourglass-half"></i></span><span class="link-text">Konfirmasi Pinjaman</span></a></li>
+                        <li><a href="{{ url_for('admin_active_loans') }}" class="{{ 'active' if request.endpoint in ['admin_active_loans', 'admin_edit_fine'] else '' }}"><span class="menu-icon"><i class="fas fa-exchange-alt"></i></span><span class="link-text">Peminjaman Aktif</span></a></li>
+                        <li><a href="{{ url_for('admin_list_users') }}" class="{{ 'active' if request.endpoint in ['admin_list_users', 'admin_user_detail', 'admin_view_action_requests'] else '' }}"><span class="menu-icon"><i class="fas fa-users"></i></span><span class="link-text">Manajemen Pengguna</span></a></li>
+                    {% endif %}
+
+                    {% if g_user.role == 'admin' %}
+                        <li><a href="{{ url_for('admin_view_action_requests') }}" class="{{ 'active' if request.endpoint == 'admin_view_action_requests' else '' }}"><span class="menu-icon"><i class="fas fa-tasks"></i></span><span class="link-text">Permintaan Aksi Staf</span></a></li>
+                        <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}"><span class="menu-icon"><i class="fas fa-chart-line"></i></span><span class="link-text">Laporan</span></a></li>
+                    {% endif %}
                 </ul>
             </nav>
             <div class="sidebar-footer-links">
                 <ul>
-                    {# --- url_for untuk logout dan index (biasanya tanpa prefix) --- #}
                     <li><a href="{{ url_for('logout') }}"><span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span><span class="link-text">Logout</span></a></li>
                     <li><a href="{{ url_for('index') }}" target="_blank"><span class="menu-icon"><i class="fas fa-external-link-alt"></i></span><span class="link-text">Lihat Situs</span></a></li>
                 </ul>
@@ -291,14 +57,12 @@
         <main class="admin-content" id="adminMainContent"> 
             <h2 class="page-header-title">{% block page_title %}{% endblock %}</h2>
             
-            <div class="content-wrapper">
+            <div class="content-wrapper"> 
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
                             <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
                                 {{ message }}
-                                {# Anda mungkin perlu Bootstrap JS agar tombol close ini berfungsi #}
-                                {# <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button> #}
                             </div>
                         {% endfor %}
                     {% endif %}
@@ -310,12 +74,12 @@
     </div>
     <div class="mobile-overlay" id="mobileOverlay"></div>
 
-
     <footer class="admin-footer" id="adminFooter"> 
-        <p>&copy; {{ current_year }} Digi Pustaka - Panel Admin</p>
+        <p>&copy; {{ current_year }} Digi Pustaka - Panel Staf</p>
     </footer>
 
     <script>
+    // JavaScript untuk Sidebar Toggle
     document.addEventListener('DOMContentLoaded', function() {
         const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
         const adminSidebar = document.getElementById('adminSidebar');
@@ -399,6 +163,10 @@
         });
     });
     </script>
+    
     {% block scripts %}{% endblock %}
+
+    {# Library untuk Scan QR Code ditambahkan di sini #}
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </body>
 </html>

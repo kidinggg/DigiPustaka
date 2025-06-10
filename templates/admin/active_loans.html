@@ -4,67 +4,198 @@
 
 {% block page_title %}Peminjaman Buku Fisik Aktif{% endblock %}
 
-{% block content %}
-<h3 style="margin-bottom: 20px; font-weight: 500;">Daftar Peminjaman Aktif Saat Ini:</h3>
+{% block head_extra %}
+{# Semua style relevan sudah ada di admin_style.css #}
+{% endblock %}
 
-<div class="table-responsive-wrapper">
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>ID Pinjam</th>
-                <th>No. Anggota</th>
-                <th>Nama Peminjam</th>
-                <th>Judul Buku</th>
-                <th>Tgl Pinjam</th>
-                <th>Tgl Jatuh Tempo</th>
-                <th style="width: 180px;">Aksi</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if loans %}
-                {% for loan in loans %}
-                <tr>
-                    <td>{{ loan['loan_id'] }}</td>
-                    <td>{{ loan['nomor_anggota'] }}</td>
-                    <td>{{ loan['nama_peminjam'] }}</td>
-                    <td>{{ loan['judul_buku'] }}</td>
-                    <td>{{ loan['tanggal_pinjam'].split(' ')[0] if loan['tanggal_pinjam'] else '-' }}</td>
-                    <td>{{ loan['tanggal_jatuh_tempo'].split(' ')[0] if loan['tanggal_jatuh_tempo'] else '-' }}</td>
-                    <td class="action-buttons">
-                        {# --- PERUBAIKAN: Menggunakan kelas btn-admin (hijau) atau btn-detail (biru) --- #}
-                        <form action="{{ url_for('admin_return_book', loan_id=loan['loan_id']) }}" method="post" onsubmit="return confirm('Apakah Anda yakin buku ini sudah dikembalikan?');">
-                            <button type="submit" class="btn btn-admin">Tandai Dikembalikan</button> 
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="7" style="text-align: center; padding: 20px;">Tidak ada peminjaman buku fisik yang aktif saat ini.</td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
+{% block content %}
+
+{# --- Area Scan untuk Pengembalian Buku --- #}
+<div class="scanner-section request-section">
+    <h4><i class="fas fa-undo-alt"></i> Proses Pengembalian Cepat</h4>
+    <p class="text-muted">Gunakan kamera untuk scan QR Code pada struk peminjaman anggota.</p>
+    <button type="button" class="btn btn-theme-primary" id="start-scan-btn-return" style="font-size: 1.1em; padding: 12px 25px;">
+        <i class="fas fa-qrcode"></i> Buka Kamera Scanner
+    </button>
+    <div id="qr-reader-return" style="width: 100%; max-width: 450px; border: 2px solid #007bff; border-radius: 8px; margin: 20px auto 10px; display: none;"></div>
+    <div id="scan-result-message-return" style="margin-top: 10px; font-weight: bold; min-height: 24px;"></div>
 </div>
 
-{# Bagian untuk menampilkan detail peminjaman yang baru diproses (jika ada) #}
-{% if processed_loan_details %}
-<div style="margin-top: 30px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; background-color: #f9f9f9;">
-    <h4><i class="fas fa-check-circle" style="color: green;"></i> Detail Pengembalian Buku (ID Pinjam: {{ processed_loan_details['loan_id'] }})</h4>
-    <p><strong>Judul Buku:</strong> {{ processed_loan_details['judul_buku'] }}</p>
-    <p><strong>Peminjam:</strong> {{ processed_loan_details['nama_peminjam'] }} (ID: {{ processed_loan_details['user_id'] }})</p>
-    <p><strong>Tanggal Pinjam:</strong> {{ processed_loan_details['tanggal_pinjam'].split(' ')[0] if processed_loan_details['tanggal_pinjam'] else '-'}}</p>
-    <p><strong>Tanggal Jatuh Tempo:</strong> {{ processed_loan_details['tanggal_jatuh_tempo'].split(' ')[0] if processed_loan_details['tanggal_jatuh_tempo'] else '-'}}</p>
-    <p><strong>Tanggal Kembali:</strong> {{ processed_loan_details['tanggal_kembali'].split(' ')[0] if processed_loan_details['tanggal_kembali'] else '-'}}</p>
-    <p><strong>Status:</strong> <span style="font-weight: bold; color: {% if processed_loan_details['status_pinjaman'] == 'terlambat_dikembalikan' %}red{% else %}green{% endif %};">
-        {{ processed_loan_details['status_pinjaman'] | title }}
-        </span>
-    </p>
-    <p><strong>Denda:</strong> Rp {{ "{:,.0f}".format(processed_loan_details['denda'] | int) if processed_loan_details['denda'] is not none else '0' }}</p>
-    {% if processed_loan_details['denda'] > 0 %}
-    <a href="{{ url_for('admin_edit_fine', loan_id=processed_loan_details['loan_id'], user_id=processed_loan_details['user_id']) }}" class="btn btn-warning btn-sm">Edit Denda</a>
+{# --- Kartu Konfirmasi untuk Pengembalian (Awalnya tersembunyi) --- #}
+<div id="return-result-container" class="scan-result-container" style="display: none;">
+    <h5><i class="fas fa-user-check"></i> Konfirmasi Pengembalian Buku</h5>
+    <hr>
+    <p><strong>Nama Peminjam:</strong> <span id="return-peminjam-nama"></span></p>
+    <p><strong>Judul Buku:</strong> <span id="return-buku-judul"></span></p>
+    <form id="finalReturnForm" action="" method="post" class="confirm-form" onsubmit="return confirm('Anda yakin ingin memproses pengembalian untuk buku ini?');">
+        <button type="submit" class="btn btn-success"><i class="fas fa-check-circle"></i> Ya, Proses Pengembalian</button>
+        <button type="button" id="cancel-return-scan-btn" class="btn btn-secondary">Batal</button>
+    </form>
+</div>
+
+{# --- Tabel Peminjaman Aktif (untuk metode manual) --- #}
+<div class="loan-history-card" style="margin-top: 30px;">
+    <h3>Daftar Peminjaman Aktif Saat Ini</h3>
+    {% if loans %}
+        <div class="table-responsive-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID Pinjam</th>
+                        <th>No. Anggota</th>
+                        <th>Nama Peminjam</th>
+                        <th>Judul Buku</th>
+                        <th>Jatuh Tempo</th>
+                        <th>Status</th>
+                        <th style="width: 180px;">Aksi Manual</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in loans %}
+                    <tr>
+                        <td>{{ loan['loan_id'] }}</td>
+                        <td>{{ loan['nomor_anggota'] }}</td>
+                        <td>{{ loan['nama_peminjam'] }}</td>
+                        <td>{{ loan['judul_buku'] }}</td>
+                        <td>{{ loan.tanggal_jatuh_tempo_dt.strftime('%d-%m-%Y') if loan.tanggal_jatuh_tempo_dt else '-' }}</td>
+                        <td>
+                            <span class="status-text status-{{ loan.status_pinjaman }}">
+                                {{ loan.status_pinjaman | replace('_', ' ') | title }}
+                            </span>
+                        </td>
+                        <td class="action-buttons">
+                            <form action="{{ url_for('admin_return_book', loan_id=loan.loan_id) }}" method="post" onsubmit="return confirm('Proses pengembalian untuk buku \'{{ loan.judul_buku|tojson }}\'?');">
+                                <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-undo-alt"></i> Tandai Kembali</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="no-data">Tidak ada peminjaman buku fisik yang aktif atau terlambat saat ini.</p>
     {% endif %}
+</div>
+
+{# Detail peminjaman yang baru saja diproses #}
+{% if processed_loan_details %}
+<div class="processed-loan-card mt-4">
+    <h4><i class="fas fa-check-circle" style="color: green;"></i> Buku Telah Diproses Kembali (ID Pinjam: {{ processed_loan_details['loan_id'] }})</h4>
+    <div class="loan-details">
+        <p><strong>Judul Buku:</strong> {{ processed_loan_details['judul_buku'] }}</p>
+        <p><strong>Peminjam:</strong> {{ processed_loan_details['nama_peminjam'] }}</p>
+        <p><strong>Tanggal Kembali:</strong> {{ processed_loan_details.tanggal_kembali_dt.strftime('%d %B %Y, %H:%M') if processed_loan_details.tanggal_kembali_dt else '-'}}</p>
+        <p><strong>Denda Saat Ini:</strong> Rp {{ "{:,.0f}".format(processed_loan_details['denda'] | int) if processed_loan_details['denda'] is not none else '0' }}</p>
+        {% if processed_loan_details['status_pinjaman'] in ['dikembalikan', 'terlambat_dikembalikan'] %}
+            <a href="{{ url_for('admin_edit_fine', loan_id=processed_loan_details['loan_id'], user_id=processed_loan_details['user_id']) }}" 
+               class="btn btn-warning btn-sm" style="margin-top: 10px;">
+               <i class="fas fa-edit"></i> Edit Denda Manual
+            </a>
+        {% endif %}
+    </div>
 </div>
 {% endif %}
 
+<audio id="scan-beep-return" src="{{ url_for('static', filename='sounds/beep.mp3') }}" preload="auto"></audio>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startScanBtn = document.getElementById('start-scan-btn-return');
+    const qrReaderDiv = document.getElementById('qr-reader-return');
+    const scanResultMessage = document.getElementById('scan-result-message-return');
+    const returnResultContainer = document.getElementById('return-result-container');
+    const cancelReturnBtn = document.getElementById('cancel-return-scan-btn');
+    const audioBeep = document.getElementById('scan-beep-return');
+    let html5QrCode;
+
+    function onScanSuccess(decodedText, decodedResult) {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                qrReaderDiv.style.display = 'none';
+                startScanBtn.textContent = 'Scan Ulang';
+                startScanBtn.style.display = 'block'; 
+                
+                if (audioBeep) {
+                    audioBeep.play().catch(e => console.error("Gagal memutar suara:", e));
+                }
+
+                fetch(`/api/loan/${decodedText}/details`)
+                    .then(response => {
+                        if (!response.ok) return response.json().then(err => Promise.reject(err));
+                        return response.json();
+                    })
+                    .then(data => {
+                        // --- PERBAIKAN LOGIKA UTAMA ADA DI SINI ---
+                        // Memastikan statusnya adalah dipinjam atau terlambat
+                        if (data.status_pinjaman !== 'dipinjam' && data.status_pinjaman !== 'terlambat_dikembalikan') {
+                            scanResultMessage.innerHTML = `<span style="color: red;">✖ Error: Peminjaman ini tidak aktif atau sudah dikembalikan.</span>`;
+                            return;
+                        }
+                        
+                        document.getElementById('return-peminjam-nama').textContent = data.nama_peminjam;
+                        document.getElementById('return-buku-judul').textContent = data.judul_buku;
+                        
+                        const confirmForm = document.getElementById('finalReturnForm');
+                        confirmForm.action = `{{ url_for('admin_return_book', loan_id=0) }}`.replace('0', data.loan_id);
+                        
+                        scanResultMessage.innerHTML = `<span style="color: green;">✔ QR Code Terdeteksi! Verifikasi detail di bawah.</span>`;
+                        returnResultContainer.style.display = 'block';
+                        startScanBtn.style.display = 'none';
+                    })
+                    .catch(error => {
+                        scanResultMessage.innerHTML = `<span style="color: red;">✖ Error: ${error.error || 'Data peminjaman tidak ditemukan.'}</span>`;
+                    });
+            }).catch(err => console.error("Gagal menghentikan scanner.", err));
+        }
+    }
+
+    function onScanFailure(error) { /* Abaikan */ }
+
+    if (startScanBtn) {
+        startScanBtn.addEventListener('click', () => {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader-return");
+            }
+            const isScanning = qrReaderDiv.style.display === 'block';
+
+            if (isScanning) {
+                if (html5QrCode.isScanning) {
+                     html5QrCode.stop().then(() => {
+                        qrReaderDiv.style.display = 'none';
+                        startScanBtn.textContent = 'Buka Kamera Scanner';
+                    });
+                }
+            } else {
+                returnResultContainer.style.display = 'none';
+                qrReaderDiv.style.display = 'block';
+                startScanBtn.textContent = 'Tutup Kamera';
+                scanResultMessage.innerHTML = '<span style="color: #007bff;">Arahkan QR Code ke kamera...</span>';
+
+                html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    { fps: 10, qrbox: { width: 300, height: 300 } },
+                    onScanSuccess, 
+                    onScanFailure
+                ).catch(err => {
+                    alert("Gagal memulai kamera. Pastikan Anda memberikan izin akses kamera.");
+                    qrReaderDiv.style.display = 'none';
+                    startScanBtn.textContent = 'Buka Kamera Scanner';
+                });
+            }
+        });
+    }
+
+    if (cancelReturnBtn) {
+        cancelReturnBtn.addEventListener('click', () => {
+            returnResultContainer.style.display = 'none';
+            scanResultMessage.textContent = '';
+            startScanBtn.style.display = 'block';
+        });
+    }
+});
+</script>
 {% endblock %}

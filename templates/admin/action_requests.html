@@ -1,0 +1,157 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Permintaan Aksi Pengguna - Admin Digi Pustaka{% endblock %}
+
+{% block page_title %}Permintaan Aksi Staf{% endblock %}
+
+{% block head_extra %}
+<style>
+    .request-section {
+        margin-bottom: 30px;
+    }
+    .request-section h3 {
+        font-weight: 500;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+    }
+    .request-card {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .request-card h4 {
+        margin-top: 0;
+        font-size: 1.2em;
+        color: #333;
+    }
+    .request-details p {
+        margin: 8px 0; /* Tambah sedikit spasi antar paragraf */
+        font-size: 0.95em;
+        line-height: 1.6;
+    }
+    .request-details strong {
+        color: #555;
+        min-width: 150px; /* Agar label rata */
+        display: inline-block;
+    }
+    .request-actions {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px dashed #eee;
+    }
+    .request-actions textarea {
+        width: 100%;
+        min-height: 60px;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+        font-family: inherit;
+        font-size: 0.95em;
+    }
+    .request-actions .btn {
+        margin-right: 10px;
+    }
+
+    .status-pending { color: #b08500; font-weight: bold; background-color: #fff3cd; padding: 3px 7px; border-radius: 4px;} /* Warna kuning lebih gelap untuk teks */
+    .status-approved { color: #198754; font-weight: bold; background-color: #d1e7dd; padding: 3px 7px; border-radius: 4px;}
+    .status-rejected { color: #dc3545; font-weight: bold; background-color: #f8d7da; padding: 3px 7px; border-radius: 4px;}
+
+    .no-requests {
+        padding: 20px;
+        text-align: center;
+        color: #777;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+    }
+    .table-actions form {
+        margin-bottom: 0; /* Menghilangkan margin bawah default dari form */
+    }
+    /* Style untuk nl2br jika menggunakan <p> dan <br> dari filter Python */
+    .nl2br-text p {
+        margin-top: 0;
+        margin-bottom: 0.5em; /* Spasi antar paragraf jika ada */
+    }
+    .nl2br-text p:last-child {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="request-section">
+    <h3>Permintaan Aksi Pending (Menunggu Persetujuan Anda)</h3>
+    {% if pending_requests %}
+        {% for req in pending_requests %}
+        <div class="request-card">
+            <h4>Permintaan #{{ req['request_id'] }}: {{ req['action_type'] | replace('_', ' ') | title }}</h4>
+            <div class="request-details">
+                <p><strong>Pengguna Target:</strong> {{ req['target_user_name'] }} (ID: {{ req['target_user_id'] }})</p>
+                <p><strong>Role Saat Ini:</strong> {{ req['target_current_role'] | title }}</p>
+                <p><strong>Diminta oleh:</strong> {{ req['requester_name'] }} (ID: {{ req['requester_user_id'] }})</p>
+                <p><strong>Tanggal Permintaan:</strong> {{ req['requested_at'].split('.')[0] if req['requested_at'] else '-' }}</p>
+                {# Menggunakan div dengan class untuk nl2br agar bisa di-style jika perlu #}
+                <p><strong>Alasan:</strong> <div class="nl2br-text">{{ req['reason'] | default('Tidak ada alasan diberikan.') | nl2br }}</div></p>
+            </div>
+            <div class="request-actions">
+                <form action="{{ url_for('admin_process_action_request', request_id=req['request_id']) }}" method="post">
+                    <textarea name="admin_notes" placeholder="Catatan Admin (opsional)..."></textarea>
+                    <button type="submit" name="decision" value="approve" class="btn btn-success btn-sm"><i class="fas fa-check"></i> Setujui</button>
+                    <button type="submit" name="decision" value="reject" class="btn btn-danger btn-sm"><i class="fas fa-times"></i> Tolak</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p class="no-requests">Tidak ada permintaan aksi yang pending saat ini.</p>
+    {% endif %}
+</div>
+
+<div class="request-section processed-requests-section">
+    <h3>Riwayat Permintaan Diproses (20 Terbaru)</h3>
+    {% if processed_requests %}
+    <div class="table-responsive-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID Req.</th>
+                    <th>Target User</th>
+                    <th>Aksi</th>
+                    <th>Diminta Oleh</th>
+                    <th>Tgl Minta</th>
+                    <th>Status</th>
+                    <th>Diproses Oleh</th>
+                    <th>Tgl Proses</th>
+                    <th>Catatan Admin</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in processed_requests %}
+                <tr>
+                    <td>{{ req['request_id'] }}</td>
+                    <td>{{ req['target_user_name'] }} (ID: {{ req['target_user_id'] }})</td>
+                    <td>{{ req['action_type'] | replace('_', ' ') | title }}</td>
+                    <td>{{ req['requester_name'] }}</td>
+                    <td>{{ req['requested_at'].split('.')[0] if req['requested_at'] else '-' }}</td>
+                    <td><span class="status-{{ req['status'] }}">{{ req['status'] | title }}</span></td>
+                    <td>{{ req['admin_processor_name'] | default('-') }}</td>
+                    <td>{{ req['processed_at'].split('.')[0] if req['processed_at'] else '-' }}</td>
+                    {# Menggunakan div dengan class untuk nl2br agar bisa di-style jika perlu #}
+                    <td><div class="nl2br-text">{{ req['admin_notes'] | default('-') | nl2br }}</div></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="no-requests">Belum ada riwayat permintaan yang diproses.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

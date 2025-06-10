@@ -1,113 +1,190 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}{{ title }} - Admin Digi Pustaka{% endblock %}
+{% block title %}Tambah Buku Baru - Admin Digi Pustaka{% endblock %}
 
+{% block page_title %}Tambah Buku Baru{% endblock %}
+
+{# Blok head_extra dikosongkan karena JavaScript dipindah ke block scripts #}
 {% block head_extra %}
-    {# CSS spesifik untuk halaman ini jika ada #}
 {% endblock %}
 
 {% block content %}
-<div class="admin-form-container">
-    <h2>{{ title }}</h2>
+<form method="POST" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="judul">Judul Buku</label>
+        <input type="text" class="form-control" id="judul" name="judul" value="{{ request_form.judul if request_form else '' }}" required>
+    </div>
 
-    <form method="POST" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="judul">Judul Buku</label>
-            <input type="text" id="judul" name="judul" value="{{ request.form.judul or '' }}" required>
+    <div class="form-group">
+        <label for="pengarang">Pengarang</label>
+        <input type="text" class="form-control" id="pengarang" name="pengarang" value="{{ request_form.pengarang if request_form else '' }}">
+    </div>
+    
+    <div class="row" style="display: flex; gap: 20px;">
+        <div class="form-group" style="flex: 1;">
+            <label for="penerbit">Penerbit</label>
+            <input type="text" class="form-control" id="penerbit" name="penerbit" value="{{ request_form.penerbit if request_form else '' }}">
         </div>
-
-        <div class="form-group">
-            <label for="pengarang">Pengarang</label>
-            <input type="text" id="pengarang" name="pengarang" value="{{ request.form.pengarang or '' }}">
+        <div class="form-group" style="flex: 1;">
+            <label for="tahun_terbit">Tahun Terbit</label>
+            <input type="number" class="form-control" id="tahun_terbit" name="tahun_terbit" min="1000" max="{{ current_year }}" value="{{ request_form.tahun_terbit if request_form else '' }}">
         </div>
+    </div>
 
-        <div class="form-group">
-            <label for="category_id">Kategori</label>
-            <select id="category_id" name="category_id" onchange="toggleNewCategoryInput(this.value)">
-                <option value="">-- Pilih Kategori --</option>
-                {% if categories %}
-                    {% for cat in categories %}
-                        <option value="{{ cat.category_id }}" 
-                                {% if request.form.category_id == cat.category_id|string %}selected{% endif %}>
-                            {{ cat.nama_kategori }}
-                        </option>
-                    {% endfor %}
-                {% endif %}
-                <option value="new" {% if request.form.category_id == 'new' %}selected{% endif %}>-- Tambah Kategori Baru --</option>
-            </select>
+    <div class="row" style="display: flex; gap: 20px;">
+        <div class="form-group" style="flex: 1;">
+            <label for="isbn">ISBN</label>
+            <input type="text" class="form-control" id="isbn" name="isbn" value="{{ request_form.isbn if request_form else '' }}">
         </div>
-
-        <div class="form-group" id="new_category_group" style="display: {% if request.form.category_id == 'new' %}block{% else %}none{% endif %};">
-            <label for="kategori_nama_baru">Nama Kategori Baru</label>
-            <input type="text" id="kategori_nama_baru" name="kategori_nama_baru" value="{{ request.form.kategori_nama_baru or '' }}">
-            <small>Isi hanya jika Anda memilih "-- Tambah Kategori Baru --" di atas.</small>
+        <div class="form-group" style="flex: 1;">
+            <label for="jumlah_halaman">Jumlah Halaman</label>
+            <input type="number" class="form-control" id="jumlah_halaman" name="jumlah_halaman" min="1" value="{{ request_form.jumlah_halaman if request_form else '' }}">
         </div>
+    </div>
 
-        <div class="form-group">
-            <label for="jenis_buku">Jenis Buku</label>
-            <select id="jenis_buku" name="jenis_buku" required>
-                <option value="fisik" {% if request.form.jenis_buku == 'fisik' or not request.form.jenis_buku %}selected{% endif %}>Fisik</option>
-                <option value="digital" {% if request.form.jenis_buku == 'digital' %}selected{% endif %}>Digital</option>
-            </select>
+    <div class="form-group">
+        <label for="category_id">Kategori</label>
+        <select class="form-select" id="category_id" name="category_id">
+            <option value="">-- Pilih Kategori --</option>
+            {% for category in categories %}
+                <option value="{{ category.category_id }}" {% if request_form and request_form.category_id == category.category_id|string %}selected{% endif %}>{{ category.nama_kategori }}</option>
+            {% endfor %}
+            <option value="new" {% if request_form and request_form.category_id == 'new' %}selected{% endif %}>-- Tambah Kategori Baru --</option>
+        </select>
+    </div>
+
+    <div class="form-group" id="kategori_nama_baru_group" style="display: {% if request_form and request_form.category_id == 'new' %}block{% else %}none{% endif %};">
+        <label for="kategori_nama_baru">Nama Kategori Baru</label>
+        <input type="text" class="form-control" id="kategori_nama_baru" name="kategori_nama_baru" value="{{ request_form.kategori_nama_baru if request_form else '' }}">
+    </div>
+
+    <div class="form-group">
+        <label for="jenis_buku">Jenis Buku</label>
+        <select class="form-select" id="jenis_buku" name="jenis_buku" required>
+            <option value="fisik" {% if request_form and request_form.jenis_buku == 'fisik' %}selected{% endif %}>Fisik</option>
+            <option value="digital" {% if request_form and request_form.jenis_buku == 'digital' %}selected{% endif %}>Digital</option>
+        </select>
+    </div>
+
+    <div class="form-group" id="stok_fisik_group">
+        <label for="stok_fisik">Stok Buku Fisik</label>
+        <input type="number" class="form-control" id="stok_fisik" name="stok_fisik" min="0" value="{{ request_form.stok_fisik if request_form else '0' }}">
+    </div>
+
+    <div class="form-group">
+        <label for="ringkasan">Ringkasan</label>
+        <textarea class="form-control" id="ringkasan" name="ringkasan" rows="4">{{ request_form.ringkasan if request_form else '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+        <label for="cover_image">Sampul Buku (Gambar)</label>
+        <div class="custom-file-input-wrapper">
+            <span class="custom-file-input-button">Pilih File</span>
+            <span class="custom-file-input-label" id="cover_image_label">Belum ada file dipilih</span>
+            <input type="file" class="form-control" id="cover_image" name="cover_image" accept="image/*">
         </div>
+        <img src="#" alt="Preview Sampul" class="cover-preview" id="cover_preview_img">
+    </div>
 
-        <div class="form-group" id="stok_fisik_group" style="display: {% if request.form.jenis_buku == 'fisik' or not request.form.jenis_buku %}block{% else %}none{% endif %};">
-            <label for="stok_fisik">Stok Buku Fisik</label>
-            <input type="number" id="stok_fisik" name="stok_fisik" value="{{ request.form.stok_fisik or 0 }}" min="0">
+    <div class="form-group" id="file_ebook_group">
+        <label for="file_ebook">File eBook (PDF, EPUB, MOBI)</label>
+         <div class="custom-file-input-wrapper">
+            <span class="custom-file-input-button">Pilih File</span>
+            <span class="custom-file-input-label" id="file_ebook_label">Belum ada file dipilih</span>
+            <input type="file" class="form-control" id="file_ebook" name="file_ebook" accept=".pdf,.epub,.mobi">
         </div>
-        
-        <div class="form-group">
-            <label for="ringkasan">Ringkasan</label>
-            <textarea id="ringkasan" name="ringkasan" rows="4">{{ request.form.ringkasan or '' }}</textarea>
-        </div>
-
-        <div class="form-group">
-            <label for="cover_image">Sampul Buku (Gambar)</label>
-            <input type="file" id="cover_image" name="cover_image" accept="image/*">
-        </div>
-
-        <div class="form-group" id="file_ebook_group" style="display: {% if request.form.jenis_buku == 'digital' %}block{% else %}none{% endif %};">
-            <label for="file_ebook">File eBook (PDF, EPUB, MOBI)</label>
-            <input type="file" id="file_ebook" name="file_ebook" accept=".pdf,.epub,.mobi">
-            <small>Wajib diisi jika jenis buku adalah Digital.</small>
-        </div>
-        
-        <button type="submit" class="btn form-submit-btn btn-success">Tambah Buku</button>
-    </form>
-</div>
-
-<script>
-    document.getElementById('jenis_buku').addEventListener('change', function() {
-        var stokFisikGroup = document.getElementById('stok_fisik_group');
-        var fileEbookGroup = document.getElementById('file_ebook_group');
-        if (this.value === 'fisik') {
-            stokFisikGroup.style.display = 'block';
-            fileEbookGroup.style.display = 'none';
-        } else if (this.value === 'digital') {
-            stokFisikGroup.style.display = 'none';
-            fileEbookGroup.style.display = 'block';
-        } else { // Seharusnya tidak terjadi jika ada default value atau required
-            stokFisikGroup.style.display = 'block'; // Default ke fisik jika tidak ada pilihan
-            fileEbookGroup.style.display = 'none';
-        }
-    });
-    // Panggil saat load untuk memastikan tampilan awal benar
-    document.getElementById('jenis_buku').dispatchEvent(new Event('change'));
-
-    function toggleNewCategoryInput(selectedValue) {
-        var newCategoryGroup = document.getElementById('new_category_group');
-        var newCategoryInput = document.getElementById('kategori_nama_baru');
-        if (selectedValue === 'new') {
-            newCategoryGroup.style.display = 'block';
-        } else {
-            newCategoryGroup.style.display = 'none';
-            newCategoryInput.value = ''; 
-        }
-    }
-    var initialCategoryValue = document.getElementById('category_id').value;
-    toggleNewCategoryInput(initialCategoryValue);
-</script>
+    </div>
+    
+    <button type="submit" class="btn btn-theme-primary"><i class="fas fa-plus-circle"></i> Tambah Buku</button>
+</form>
 {% endblock %}
 
-{% block scripts_extra %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('category_id');
+    const newCategoryGroup = document.getElementById('kategori_nama_baru_group');
+    const newCategoryInput = document.getElementById('kategori_nama_baru');
+
+    function toggleNewCategory() {
+        if (categorySelect.value === 'new') {
+            newCategoryGroup.style.display = 'block';
+            newCategoryInput.required = true;
+        } else {
+            newCategoryGroup.style.display = 'none';
+            newCategoryInput.required = false;
+        }
+    }
+    if (categorySelect) {
+        categorySelect.addEventListener('change', toggleNewCategory);
+        toggleNewCategory(); 
+    }
+
+    const jenisBukuSelect = document.getElementById('jenis_buku');
+    const stokFisikGroup = document.getElementById('stok_fisik_group');
+    const fileEbookGroup = document.getElementById('file_ebook_group');
+    const stokFisikInput = document.getElementById('stok_fisik');
+    const fileEbookInput = document.getElementById('file_ebook');
+
+    function toggleBookTypeFields() {
+        if (jenisBukuSelect.value === 'fisik') {
+            stokFisikGroup.style.display = 'block';
+            stokFisikInput.required = true;
+            fileEbookGroup.style.display = 'none';
+            fileEbookInput.required = false;
+        } else if (jenisBukuSelect.value === 'digital') {
+            stokFisikGroup.style.display = 'none';
+            stokFisikInput.required = false;
+            fileEbookGroup.style.display = 'block';
+            fileEbookInput.required = true; 
+        } else {
+            stokFisikGroup.style.display = 'none';
+            stokFisikInput.required = false;
+            fileEbookGroup.style.display = 'none';
+            fileEbookInput.required = false;
+        }
+    }
+    if (jenisBukuSelect) {
+        jenisBukuSelect.addEventListener('change', toggleBookTypeFields);
+        toggleBookTypeFields(); 
+    }
+
+    const coverImageInput = document.getElementById('cover_image');
+    const coverPreview = document.getElementById('cover_preview_img');
+    const coverImageLabel = document.getElementById('cover_image_label');
+
+    if (coverImageInput) {
+        coverImageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                coverImageLabel.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    coverPreview.src = event.target.result;
+                    coverPreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                coverImageLabel.textContent = 'Belum ada file dipilih';
+                coverPreview.style.display = 'none';
+                coverPreview.src = '#';
+            }
+        });
+    }
+
+    const ebookFileInput = document.getElementById('file_ebook');
+    const ebookFileLabel = document.getElementById('file_ebook_label');
+
+    if (ebookFileInput) {
+        ebookFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                ebookFileLabel.textContent = file.name;
+            } else {
+                ebookFileLabel.textContent = 'Belum ada file dipilih';
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -3,130 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - Digi Pustaka</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
-    </head>
+    <title>
+        {% if loan.status_pinjaman == 'menunggu_konfirmasi_admin' %}
+            Bukti Permintaan Peminjaman
+        {% else %}
+            Struk Peminjaman Buku
+        {% endif %}
+        - Digi Pustaka
+    </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #e9ecef;
+            color: #212529;
+            margin: 0;
+            padding: 20px;
+        }
+        .receipt-wrapper {
+            max-width: 700px;
+            margin: 20px auto;
+            background: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        .receipt-header {
+            text-align: center;
+            padding: 25px;
+            border-bottom: 2px dashed #dee2e6;
+        }
+        .receipt-header h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: #343a40;
+            font-weight: 700;
+        }
+        .receipt-header h1 i {
+            color: #007bff;
+        }
+        .receipt-header p {
+            margin: 5px 0 0;
+            font-size: 0.95rem;
+            color: #6c757d;
+        }
+        .receipt-body {
+            padding: 1.5rem 2rem;
+        }
+        .receipt-section h5 {
+            font-size: 1.15rem;
+            margin-top: 1rem;
+            margin-bottom: 0.75rem;
+            color: #0056b3;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 170px 1fr;
+            gap: 8px 15px;
+            font-size: 0.95em;
+        }
+        .detail-grid .label {
+            font-weight: 500;
+            color: #6c757d;
+        }
+        .detail-grid .value {
+            color: #212529;
+        }
+        .qr-section {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f3f5;
+        }
+        .qr-section img {
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 8px;
+        }
+        .alert-status {
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+            font-size: 0.95em;
+            text-align: center;
+            border: 1px solid transparent;
+        }
+        .alert-status-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-color: #ffeeba;
+        }
+        .receipt-footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.85em;
+            color: #6c757d;
+            border-top: 2px dashed #dee2e6;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            font-size: 0.95em;
+            font-weight: 600;
+            border-radius: 5px;
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: background-color 0.2s;
+        }
+        .btn .fas {
+            margin-right: 8px;
+        }
+        .btn-secondary {
+            color: #fff !important;
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .btn-primary {
+            color: #fff !important;
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .instructions {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #e9f5ff;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+        }
+        .instructions strong {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .instructions ol {
+            padding-left: 20px;
+            margin-bottom: 0;
+        }
+        .instructions ol li {
+            margin-bottom: 0.3rem;
+        }
+
+        @media print {
+            body { background-color: #fff; padding: 0; margin: 0; }
+            .receipt-wrapper { box-shadow: none; border: 1px solid #ccc; max-width: 100%; margin: 0; border-radius: 0;}
+            .receipt-footer { display: none; }
+        }
+    </style>
+</head>
 <body>
-    <header class="header-main no-print"> <div class="header-left">
-            <div class="logo-container">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo Digi Pustaka" onerror="this.style.display='none'; this.parentElement.innerHTML='DigiPustaka';">
-            </div>
-            <div class="site-title-container">
-                <h1 class="site-title">Digi Pustaka</h1>
-                <p class="site-subtitle">Sistem Informasi Perpustakaan Digital</p>
-            </div>
-        </div>
-
-        <button class="nav-toggle" aria-label="menu" aria-expanded="false" aria-controls="mainNav">
-            <span class="hamburger"></span>
-        </button>
-
-        <nav class="main-nav" id="mainNav">
-            <ul> 
-                <li><a href="{{ url_for('index') }}">Beranda</a></li>
-                <li><a href="{{ url_for('books_catalog_physical') }}">Buku Fisik</a></li>
-                <li><a href="{{ url_for('books_catalog_digital') }}">Buku Digital</a></li>
-                {% if g.user %}
-                    {% if g.user.role == 'admin' %}
-                        <li><a href="{{ url_for('admin_dashboard') }}" class="admin-link">Panel Admin</a></li>
-                    {% else %}
-                        <li><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li>
-                    {% endif %}
-                    <li><a href="{{ url_for('logout') }}">Logout ({{ g.user.nama_lengkap.split(' ')[0] }})</a></li>
-                {% else %}
-                    <li><a href="{{ url_for('register') }}">Registrasi</a></li>
-                    <li><a href="{{ url_for('login') }}">Login</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-    </header>
-
-    <div class="action-buttons-container">
-        <button onclick="window.print()" class="btn print-button">Cetak Struk</button>
-        <a href="{{ url_for('dashboard') }}" class="btn back-to-dashboard-btn">Kembali ke Dashboard</a>
-    </div>
-
-    <div class="receipt-container">
+    <div class="receipt-wrapper">
         <div class="receipt-header">
-            <p class="library-name">Digi Pustaka</p>
-            <h2>Struk Peminjaman Buku</h2>
-            {% if loan and loan.tanggal_pinjam %}
-            <p class="date-time">Tanggal Cetak: {{ now.strftime('%d-%m-%Y %H:%M:%S') }}</p>
-            {% endif %}
+            <h1>
+                {% if loan.status_pinjaman == 'menunggu_konfirmasi_admin' %}
+                    <i class="fas fa-hourglass-half"></i> Permintaan Pinjam
+                {% else %}
+                    <i class="fas fa-receipt"></i> Struk Peminjaman
+                {% endif %}
+            </h1>
+            <p>Digi Pustaka</p>
         </div>
-
-        {% if loan %}
         <div class="receipt-body">
-            <table>
-                <tr>
-                    <td>ID Pinjam:</td>
-                    <td>{{ loan.loan_id }}</td>
-                </tr>
-                <tr>
-                    <td>Nama Peminjam:</td>
-                    <td>{{ loan.nama_peminjam }}</td>
-                </tr>
-                <tr>
-                    <td>No. Anggota:</td>
-                    <td>{{ loan.nomor_anggota }}</td>
-                </tr>
-                <tr>
-                    <td>Judul Buku:</td>
-                    <td>{{ loan.judul_buku }}</td>
-                </tr>
-                <tr>
-                    <td>Tanggal Pinjam:</td>
-                    <td>{{ loan.tanggal_pinjam.split(' ')[0] if loan.tanggal_pinjam else '-' }}</td>
-                </tr>
-                <tr>
-                    <td>Jatuh Tempo:</td>
-                    <td>{{ loan.tanggal_jatuh_tempo.split(' ')[0] if loan.tanggal_jatuh_tempo else '-' }}</td>
-                </tr>
-            </table>
-            
-            <div style="text-align:center;">
-                <div id="qrcode-receipt"></div>
+            {% if loan.status_pinjaman == 'menunggu_konfirmasi_admin' %}
+                <div class="alert-status alert-status-warning">
+                    <strong>Status: Menunggu Konfirmasi.</strong><br>
+                    Tunjukkan bukti ini kepada Pustakawan untuk pengambilan buku.
+                </div>
+            {% endif %}
+
+            <div class="receipt-section">
+                <h5>Detail Peminjam</h5>
+                <div class="detail-grid">
+                    <span class="label">Nama Peminjam:</span>
+                    <span class="value">{{ loan.nama_peminjam }}</span>
+                    <span class="label">Nomor Anggota:</span>
+                    <span class="value">{{ loan.nomor_anggota }}</span>
+                </div>
             </div>
-            <script type="text/javascript">
-                var loanIdForQR = "{{ loan.loan_id }}";
-                if (loanIdForQR) {
-                    new QRCode(document.getElementById("qrcode-receipt"), {
-                        text: "LOAN_ID:" + loanIdForQR, 
-                        width: 120,
-                        height: 120,
-                        colorDark : "#000000",
-                        colorLight : "#ffffff",
-                        correctLevel : QRCode.CorrectLevel.M 
-                    });
-                }
-            </script>
+
+            <div class="receipt-section">
+                <h5>Detail Transaksi</h5>
+                 <div class="detail-grid">
+                    <span class="label">ID Transaksi:</span>
+                    <span class="value">LOAN-{{ loan.loan_id }}</span>
+                    <span class="label">Judul Buku:</span>
+                    <span class="value">{{ loan.judul_buku }}</span>
+                    <span class="label">Tanggal Pinjam:</span>
+                    {# PERBAIKAN: Menggunakan .tanggal_pinjam_dt untuk strftime #}
+                    <span class="value">{{ loan.tanggal_pinjam_dt.strftime('%d %B %Y, %H:%M') if loan.tanggal_pinjam_dt else '-' }}</span>
+                    {% if loan.tipe_pinjaman == 'fisik' %}
+                        <span class="label">Jatuh Tempo:</span>
+                        {# PERBAIKAN: Menggunakan .tanggal_jatuh_tempo_dt untuk strftime #}
+                        <span class="value">{{ loan.tanggal_jatuh_tempo_dt.strftime('%d %B %Y') if loan.tanggal_jatuh_tempo_dt else '-' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="qr-section">
+                <h5>Scan QR Code Ini</h5>
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ loan.loan_id }}" alt="QR Code untuk Loan ID {{ loan.loan_id }}">
+                <p><small>Loan ID: {{ loan.loan_id }}</small></p>
+            </div>
         </div>
         <div class="receipt-footer">
-            <p>Terima kasih telah meminjam buku di Digi Pustaka.</p>
-            <p>Harap kembalikan buku tepat waktu.</p>
+            <p>Harap simpan struk ini sebagai bukti peminjaman.</p>
+            <p><small>Dicetak pada: {{ now.strftime('%d-%m-%Y %H:%M:%S') }}</small></p>
+            
+            {# --- TOMBOL CETAK/DOWNLOAD --- #}
+            <button onclick="window.print();" class="btn btn-primary"><i class="fas fa-print"></i> Cetak / Simpan PDF</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="margin-left: 10px;"><i class="fas fa-arrow-left"></i> Kembali</a>
         </div>
-        {% else %}
-            <p style="text-align:center; color:red;">Data peminjaman tidak ditemukan.</p>
-        {% endif %}
     </div>
-
-    <footer class="footer-main no-print"> <p>&copy; {{ now.year if now else '2025' }} Digi Pustaka. Dibuat dengan Flask.</p>
-    </footer>
-
-    <script>
-        const navToggle = document.querySelector('.nav-toggle');
-        const mainNav = document.getElementById('mainNav');
-
-        if (navToggle && mainNav) {
-            navToggle.addEventListener('click', () => {
-                mainNav.classList.toggle('nav-open');
-                navToggle.classList.toggle('nav-open');
-                
-                const isExpanded = mainNav.classList.contains('nav-open');
-                navToggle.setAttribute('aria-expanded', isExpanded);
-            });
-        }
-    </script>
 </body>
 </html>

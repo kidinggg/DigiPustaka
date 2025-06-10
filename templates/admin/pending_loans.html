@@ -1,0 +1,219 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Konfirmasi Peminjaman - Admin Digi Pustaka{% endblock %}
+
+{% block page_title %}Konfirmasi Peminjaman & Scan QR Code{% endblock %}
+
+{% block head_extra %}
+<style>
+    .scanner-section {
+        padding: 25px;
+        background-color: #ffffff; /* Ubah ke putih agar lebih bersih */
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 30px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    }
+    #qr-reader {
+        width: 100%;
+        max-width: 450px;
+        border: 2px solid #007bff;
+        border-radius: 8px;
+        margin: 20px auto 10px;
+        display: none;
+    }
+    .scan-result-container {
+        display: none; /* Sembunyikan awal */
+        margin-top: 20px;
+        padding: 20px;
+        border: 1px solid #17a2b8; /* Border warna info */
+        border-radius: 8px;
+        background-color: #f1f9fa; /* Latar yang lembut */
+        text-align: left;
+    }
+    .scan-result-container h5 {
+        font-weight: 600;
+        color: #0c5460; /* Warna teks gelap */
+        margin-top: 0;
+        margin-bottom: 15px;
+    }
+    .scan-result-container p {
+        font-size: 1.1em;
+        margin-bottom: 8px;
+    }
+    .scan-result-container .confirm-form {
+        margin-top: 15px;
+        border-top: 1px dashed #ced4da;
+        padding-top: 15px;
+    }
+    #scan-result-message {
+        margin-top: 10px;
+        font-weight: bold;
+        min-height: 24px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="scanner-section">
+    <h4><i class="fas fa-qrcode"></i> Scan QR Code Peminjaman</h4>
+    <p class="text-muted">Arahkan kamera ke QR Code pada struk permintaan anggota.</p>
+    <button type="button" class="btn btn-theme-primary" id="start-scan-btn" style="font-size: 1.1em; padding: 12px 25px;">
+        Buka Kamera Scanner
+    </button>
+    <div id="qr-reader"></div>
+    <div id="scan-result-message"></div>
+</div>
+
+<div id="scan-result-container" class="scan-result-container">
+    <h5><i class="fas fa-user-check"></i> Konfirmasi Detail Peminjaman</h5>
+    <p><strong>Nama Peminjam:</strong> <span id="peminjam-nama"></span></p>
+    <p><strong>Judul Buku:</strong> <span id="buku-judul"></span></p>
+    <form id="finalConfirmForm" action="" method="post" class="confirm-form">
+        <button type="submit" class="btn btn-success"><i class="fas fa-check-circle"></i> Ya, Konfirmasi & Serahkan Buku</button>
+        <button type="button" id="cancel-scan-btn" class="btn btn-secondary">Batal</button>
+    </form>
+</div>
+
+<div class="loan-history-card" style="margin-top: 30px;">
+    <h3>Daftar Permintaan Menunggu Konfirmasi (Manual)</h3>
+    {% if pending_loans %}
+        <div class="table-responsive-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID Pinjam</th>
+                        <th>No. Anggota</th>
+                        <th>Nama Peminjam</th>
+                        <th>Judul Buku</th>
+                        <th>Tgl Permintaan</th>
+                        <th style="width: 220px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in pending_loans %}
+                    <tr>
+                        <td>{{ loan['loan_id'] }}</td>
+                        <td>{{ loan['nomor_anggota'] }}</td>
+                        <td>{{ loan['nama_peminjam'] }}</td>
+                        <td>{{ loan['judul_buku'] }}</td>
+                        <td>{{ loan.tanggal_permintaan_dt.strftime('%d-%m-%Y %H:%M') if loan.tanggal_permintaan_dt else '-' }}</td>
+                        <td class="action-buttons">
+                            <form action="{{ url_for('admin_confirm_loan_action', loan_id=loan.loan_id) }}" method="post" 
+                                  onsubmit="return confirm('Konfirmasi peminjaman buku ' + {{ loan.judul_buku|tojson }} + ' untuk ' + {{ loan.nama_peminjam|tojson }} + '? Stok akan dikurangi.');">
+                                <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check-circle"></i> Konfirmasi Manual</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="no-data">Tidak ada permintaan peminjaman yang menunggu konfirmasi saat ini.</p>
+    {% endif %}
+</div>
+
+<audio id="scan-beep" src="{{ url_for('static', filename='sounds/beep.mp3') }}" preload="auto"></audio>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const startScanBtn = document.getElementById('start-scan-btn');
+    const qrReaderDiv = document.getElementById('qr-reader');
+    const scanResultMessage = document.getElementById('scan-result-message');
+    const scanResultContainer = document.getElementById('scan-result-container');
+    const cancelScanBtn = document.getElementById('cancel-scan-btn');
+    const audioBeep = document.getElementById('scan-beep');
+    let html5QrCode;
+
+    function onScanSuccess(decodedText, decodedResult) {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(() => {
+                qrReaderDiv.style.display = 'none';
+                startScanBtn.textContent = 'Scan Ulang';
+                startScanBtn.style.display = 'block'; 
+                
+                if (audioBeep) {
+                    audioBeep.play().catch(e => console.error("Gagal memutar suara:", e));
+                }
+
+                if (!isNaN(decodedText)) {
+                    fetch(`/api/loan/${decodedText}/details`)
+                        .then(response => {
+                            if (!response.ok) {
+                                return response.json().then(err => Promise.reject(err));
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            document.getElementById('peminjam-nama').textContent = data.nama_peminjam;
+                            document.getElementById('buku-judul').textContent = data.judul_buku;
+                            
+                            const confirmForm = document.getElementById('finalConfirmForm');
+                            confirmForm.action = `{{ url_for('admin_confirm_loan_action', loan_id=0) }}`.replace('0', data.loan_id);
+                            
+                            scanResultMessage.innerHTML = `<span style="color: green;">✔ QR Code Terdeteksi!</span>`;
+                            scanResultContainer.style.display = 'block';
+                            startScanBtn.style.display = 'none';
+                        })
+                        .catch(error => {
+                            scanResultMessage.innerHTML = `<span style="color: red;">✖ Error: ${error.error || 'Data peminjaman tidak valid atau sudah diproses.'}</span>`;
+                        });
+                } else {
+                    scanResultMessage.innerHTML = `<span style="color: red;">✖ QR Code tidak valid.</span>`;
+                }
+            }).catch(err => console.error("Gagal menghentikan scanner.", err));
+        }
+    }
+
+    function onScanFailure(error) { /* Abaikan */ }
+
+    if (startScanBtn) {
+        startScanBtn.addEventListener('click', () => {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("qr-reader");
+            }
+            const isScanning = qrReaderDiv.style.display === 'block';
+
+            if (isScanning) {
+                if (html5QrCode.isScanning) {
+                     html5QrCode.stop().then(() => {
+                        qrReaderDiv.style.display = 'none';
+                        startScanBtn.textContent = 'Scan QR Code Peminjaman';
+                    });
+                }
+            } else {
+                scanResultContainer.style.display = 'none';
+                qrReaderDiv.style.display = 'block';
+                startScanBtn.textContent = 'Tutup Kamera';
+                scanResultMessage.innerHTML = '<span style="color: #007bff;">Arahkan QR Code ke kamera...</span>';
+
+                html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    { fps: 10, qrbox: { width: 300, height: 300 } },
+                    onScanSuccess, 
+                    onScanFailure
+                ).catch(err => {
+                    alert("Gagal memulai kamera. Pastikan Anda memberikan izin akses kamera.");
+                    qrReaderDiv.style.display = 'none';
+                    startScanBtn.textContent = 'Scan QR Code Peminjaman';
+                });
+            }
+        });
+    }
+
+    if (cancelScanBtn) {
+        cancelScanBtn.addEventListener('click', () => {
+            scanResultContainer.style.display = 'none';
+            scanResultMessage.textContent = '';
+            startScanBtn.style.display = 'block';
+        });
+    }
+});
+</script>
+{% endblock %}
