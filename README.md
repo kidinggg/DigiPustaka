@@ -1,19 +1,4 @@
-<p align="center">
-  <img src="static/images/logo.png" alt="Logo DigiPustaka" width="150"/>
-</p>
-
-<h1 align="center">📚 DigiPustaka - Sistem Informasi Perpustakaan Digital 💻</h1>
-
-<p align="center">
-  Solusi modern untuk manajemen perpustakaan berbasis web, dibangun dengan Flask & Python.
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.9-blue" alt="Python Version">
-  <img src="https://img.shields.io/badge/Flask-2.x-green" alt="Flask Version">
-  <img src="https://img.shields.io/badge/Database-SQLite-lightgrey" alt="Database">
-  <img src="https://img.shields.io/badge/Frontend-HTML%2FCSS%2FJS-orange" alt="Frontend">
-</p>
+# 📚 DigiPustaka - Sistem Informasi Perpustakaan Digital 💻
 
 ---
 
@@ -21,87 +6,39 @@
 
 ### 👤 Untuk Pengguna/Anggota:
 
-* 🔑 Registrasi dan login akun yang aman.
-* 📖 Katalog buku fisik dan digital dengan pencarian dan filter berdasarkan kategori.
-* ℹ️ Detail buku: ringkasan, status, dan info lainnya.
-* 📅 Peminjaman buku fisik dan unduhan e-book.
-* 📊 Dashboard anggota: histori peminjaman, status buku, dan notifikasi jatuh tempo.
-* ✏️ Edit profil pribadi.
-* 💳 Cetak kartu anggota digital dengan QR Code.
+- 🔑 Registrasi dan login aman (akun diverifikasi aktif).
+- 📖 Jelajahi katalog buku fisik & digital dengan filter dan pencarian.
+- ℹ️ Lihat detail buku: ringkasan, kategori, status, dan file.
+- 📥 Unduh eBook (jika tersedia) langsung dari sistem.
+- 📅 Ajukan permintaan peminjaman buku fisik.
+- 🔔 Notifikasi peminjaman, jatuh tempo, dan denda keterlambatan otomatis.
+- 📊 Dashboard pribadi: histori peminjaman & status buku.
+- ✏️ Edit profil & unggah foto.
+- 💳 Kartu anggota digital dengan QR Code.
 
-### 🛠️ Untuk Admin:
+### 🛠️ Untuk Staf/Admin/Pustakawan:
 
-* 📊 Dashboard admin dengan statistik penting.
-* 📖 CRUD koleksi buku, unggah file e-book dan gambar sampul.
-* 👥 Manajemen pengguna: lihat, aktifkan/nonaktifkan akun.
-* 🗓️ Transaksi peminjaman buku: pengembalian & denda otomatis.
-* 📄 Laporan aktivitas perpustakaan.
-* 💰 Atur tarif denda keterlambatan.
+- 📊 Dashboard statistik lengkap & aktivitas terbaru.
+- 📖 CRUD buku, kategori, cover, dan file eBook.
+- 🗂️ Tambahkan kategori baru saat input buku.
+- 📑 Kelola permintaan pinjam buku fisik (konfirmasi & pengembalian).
+- ⏰ Denda otomatis untuk pengembalian terlambat.
+- 👥 Manajemen pengguna: edit, aktif/nonaktif, ubah peran.
+- 📨 Sistem permintaan aksi (oleh pustakawan → disetujui admin).
+- 🔐 Hak akses berdasarkan role (anggota, pustakawan, admin).
+- 📡 API JSON untuk detail peminjaman (khusus pustakawan/admin).
 
 ---
 
 ## 🖼️ Tampilan Aplikasi
 
-<details>
-  <summary><strong>Klik untuk melihat tampilan aplikasi</strong></summary>
+### Halaman Beranda
 
-### Halaman Utama
+### Katalog & Detail Buku
 
-<p align="center">
-  <img src="assets/images/beranda.png" alt="Beranda" width="350"/>
-  <img src="assets/images/beranda_2.png" alt="Beranda" width="350"/>
-</p>
-
-### Katalog Buku Digital
-
-<p align="center">
-  <img src="assets/images/katalog_buku_digital.png" alt="Katalog Buku Digital" width="700"/>
-</p>
-
-### Detail Buku
-
-<p align="center">
-  <img src="assets/images/detail_buku.png" alt="Detail Buku" width="700"/>
-</p>
-
-### Dashboard Anggota
-
-<p align="center">
-  <img src="assets/images/dashboar_anggota.png" alt="Dashboard Anggota" width="700"/>
-</p>
+### Dashboard Anggota & Admin
 
 ### Login & Registrasi
-
-<p align="center">
-  <img src="assets/images/login.png" alt="Login" width="350"/>
-  <img src="assets/images/register.png" alt="Registrasi" width="350"/>
-</p>
-
-### Dashboard Admin
-
-<p align="center">
-  <img src="assets/images/dashboard_admin.png" alt="Dashboard Admin" width="700"/>
-</p>
-</details>
-
----
-
-## 🚀 Teknologi yang Digunakan
-
-* **Backend**: Python 3 + Flask
-* **Frontend**: HTML5, CSS3, JavaScript
-* **Database**: SQLite
-* **Templating**: Jinja2
-* **Fitur Tambahan**:
-
-  * Pratinjau PDF (PDF.js)
-  * QR Code (qrcode.js)
-
----
-
-## 🎯 Tujuan Proyek
-
-DigiPustaka bertujuan untuk memodernisasi layanan perpustakaan melalui platform digital yang responsif dan mudah diakses di desktop maupun mobile. Aplikasi ini mendukung kemandirian pengguna dan efisiensi pengelolaan oleh admin.
 
 ---
 
@@ -109,9 +46,9 @@ DigiPustaka bertujuan untuk memodernisasi layanan perpustakaan melalui platform 
 
 ### Prasyarat:
 
-* Python >= 3.7
-* pip
-* (Opsional) Git
+- Python >= 3.7
+- pip
+- (Opsional) Git
 
 ### Langkah-langkah:
 
@@ -128,7 +65,7 @@ cd DigiPustaka
 python -m venv venv
 
 # Windows
-env\Scripts\activate
+venv\Scripts\activate
 # macOS/Linux
 source venv/bin/activate
 ```
@@ -139,57 +76,79 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. **Inisialisasi Database**:
+4. **Inisialisasi Database (sekali saja)**:
 
 ```bash
-flask init-db
+flask --app app.py init-db
 ```
 
 5. **Jalankan Aplikasi**:
 
 ```bash
 flask run
-# Atau mode debug
+# atau
 python app.py
 ```
 
-6. **Akses via Browser**: [http://localhost:5000/](http://localhost:5000/)
+6. **Akses Aplikasi**: Buka browser dan kunjungi: [http://localhost:5000](http://localhost:5000)
+
+---
+
+## ⚙️ Teknologi yang Digunakan
+
+- **Backend**: Python 3 + Flask
+- **Frontend**: HTML5, CSS3, JavaScript
+- **Database**: SQLite
+- **Templating**: Jinja2
+- **Fitur Tambahan**:
+  - Pratinjau PDF (PDF.js)
+  - QR Code (qrcode.js)
+  - Session, Flash Message
+  - Hak Akses Berbasis Role
 
 ---
 
 ## 👨‍💻 Pengembang Utama
 
-* **Nama**: Zacky Putra Setyawan
-    * **Status**: Mahasiswa Sistem Informasi
-    * **Institusi**: Universitas Buana Perjuangan Karawang
-    * **Peran**: Full Stack Developer: Backend, Frontend, Database, Integrasi Fitur, testing
-    * **Email**: [zackyputra1905@gmail.com](mailto:zackyputra1905@gmail.com)
-    * **Email**: [si23.zackysetyawan@mhs.ubpkarawang.ac.id](mailto:si23.zackysetyawan@mhs.ubpkarawang.ac.id)
-    * **GitHub**: [@kidinggg](https://github.com/kidinggg)
+**Zacky Putra Setyawan**\
+Full Stack Developer (Backend, Frontend, Database, Integrasi Fitur)\
+Mahasiswa Sistem Informasi – Universitas Buana Perjuangan Karawang\
+📧 [zackyputra1905@gmail.com](mailto\:zackyputra1905@gmail.com)\
+📧 [si23.zackysetyawan@mhs.ubpkarawang.ac.id](mailto\:si23.zackysetyawan@mhs.ubpkarawang.ac.id)\
+🔗 [GitHub @kidinggg](https://github.com/kidinggg)
 
 ---
 
 ## 🤝 Tim Kontributor
 
-* **Naufal Fauzi Rahman** - Desain UI/UX & Dokumentasi laporan
-    * **Status**: Mahasiswa Sistem Informasi
-    * **Institusi**: Universitas Buana Perjuangan Karawang
-    * **Email**: [si23.naufahrahman@mhs.ubpkarawang.ac.id](mailto:si23.naufahrahman@mhs.ubpkarawang.ac.id)
-* **Alfiansyah Hidayat** - Desain konten,  Database & Analisis Data Awal
-    * **Status**: Mahasiswa Sistem Informasi
-    * **Institusi**: Universitas Buana Perjuangan Karawang
-    * **Email**: [si23.alfihidayat@mhs.ubpkarawang.ac.id](mailto:si23.alfihidayat@mhs.ubpkarawang.ac.id)
-* **Farid Firdaus** - Pengelolaan Konten & Pengujian Modul
-    * **Status**: Mahasiswa Sistem Informasi
-    * **Institusi**: Universitas Buana Perjuangan Karawang
-    * **Email**: [si23.faridfirdaus@mhs.ubpkarawang.ac.id](mailto:si23.faridfirdaus@mhs.ubpkarawang.ac.id)
-* **Rahma Khoirunnisa** - Database & Riset Pengguna
-    * **Status**: Mahasiswa Sistem Informasi
-    * **Institusi**: Universitas Buana Perjuangan Karawang
-    * **Email**: [si23.rahmakhoirunnisa@mhs.ubpkarawang.ac.id](mailto:si23.rahmakhoirunnisa@mhs.ubpkarawang.ac.id)
+- **Naufal Fauzi Rahman** – UI/UX & Dokumentasi
+- **Alfiansyah Hidayat** – Konten, Database & Analisis Data
+- **Farid Firdaus** – Pengujian Modul & Konten
+- **Rahma Khoirunnisa** – Riset Pengguna & Database
+
+> Seluruh kontributor merupakan mahasiswa Sistem Informasi Universitas Buana Perjuangan Karawang.
 
 ---
 
+## 🎯 Tujuan Proyek
+
+**DigiPustaka** bertujuan menjadi sistem informasi perpustakaan yang:
+
+- Modern & Responsif
+- Mendukung peminjaman digital dan fisik
+- Meningkatkan efisiensi kerja pustakawan/admin
+- Mempermudah akses buku bagi mahasiswa
+
 ---
 
-🚀 Selamat menggunakan DigiPustaka!
+## 📬 Kontak & Kontribusi
+
+Untuk laporan bug, permintaan fitur, atau kontribusi:
+
+- Buka [Issues](https://github.com/kidinggg/DigiPustaka/issues)
+- Atau hubungi langsung melalui email pengembang utama
+
+---
+
+🚀 Selamat menggunakan **DigiPustaka** dan ikut serta dalam modernisasi perpustakaan digital Indonesia!
+
