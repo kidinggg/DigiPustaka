@@ -32,13 +32,47 @@
 
 ## 🖼️ Tampilan Aplikasi
 
-### Halaman Beranda
+<details>
+  <summary><strong>Klik untuk melihat tampilan aplikasi</strong></summary>
 
-### Katalog & Detail Buku
+### Halaman Utama
 
-### Dashboard Anggota & Admin
+<p align="center">
+  <img src="assets/images/beranda.png" alt="Beranda" width="350"/>
+  <img src="assets/images/beranda_2.png" alt="Beranda" width="350"/>
+</p>
+
+### Katalog Buku Digital
+
+<p align="center">
+  <img src="assets/images/katalog_buku_digital.png" alt="Katalog Buku Digital" width="700"/>
+</p>
+
+### Detail Buku
+
+<p align="center">
+  <img src="assets/images/detail_buku.png" alt="Detail Buku" width="700"/>
+</p>
+
+### Dashboard Anggota
+
+<p align="center">
+  <img src="assets/images/dashboar_anggota.png" alt="Dashboard Anggota" width="700"/>
+</p>
 
 ### Login & Registrasi
+
+<p align="center">
+  <img src="assets/images/login.png" alt="Login" width="350"/>
+  <img src="assets/images/register.png" alt="Registrasi" width="350"/>
+</p>
+
+### Dashboard Admin
+
+<p align="center">
+  <img src="assets/images/dashboard_admin.png" alt="Dashboard Admin" width="700"/>
+</p>
+</details>
 
 ---
 
