@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Digi Pustaka</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v='1.3') }}">
 </head>
 <body>
     <header class="header-main">
@@ -21,7 +21,8 @@
         <button class="nav-toggle" aria-label="menu" aria-expanded="false" aria-controls="mainNav">
             <span class="hamburger"></span>
         </button>
-        <nav class="main-nav" id="mainNav"> <ul> 
+        <nav class="main-nav" id="mainNav">
+            <ul>
                 <li><a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' else '' }}">Beranda</a></li>
                 <li><a href="{{ url_for('books_catalog_physical') }}" class="{{ 'active' if request.endpoint == 'books_catalog_physical' else '' }}">Buku Fisik</a></li>
                 <li><a href="{{ url_for('books_catalog_digital') }}" class="{{ 'active' if request.endpoint == 'books_catalog_digital' else '' }}">Buku Digital</a></li>
@@ -29,7 +30,7 @@
                     {% if g.user.role == 'admin' %}
                         <li><a href="{{ url_for('admin_dashboard') }}" class="admin-link {{ 'active' if 'admin' in request.endpoint else '' }}">Panel Admin</a></li>
                     {% else %}
-                        <li><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li> {# Tandai Dashboard aktif di sini #}
+                        <li><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li>
                     {% endif %}
                     <li><a href="{{ url_for('logout') }}">Logout ({{ g.user.nama_lengkap.split(' ')[0] }})</a></li>
                 {% else %}
@@ -37,10 +38,12 @@
                     <li><a href="{{ url_for('login') }}" class="{{ 'active' if request.endpoint == 'login' else '' }}">Login</a></li>
                 {% endif %}
             </ul>
-            </nav>
+        </nav>
     </header>
 
-    <div class="container page-content-container"> <h2 class="page-title">{{ title }}</h2> {% with messages = get_flashed_messages(with_categories=true) %}
+    <div class="container page-content-container">
+        <h2 class="page-title">{{ title }}</h2>
+        {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
                     <div class="alert alert-{{ category }}">{{ message }}</div>
@@ -78,7 +81,7 @@
                     <ul>
                         {% for book in overdue_books %}
                             <li>
-                                <a href="{{ url_for('book_detail', book_id=book.book_id) }}">{{ book.judul }}</a> 
+                                <a href="{{ url_for('book_detail', book_id=book.book_id) }}">{{ book.judul }}</a>
                                 - Jatuh tempo: {{ book.jatuh_tempo }} (Terlambat {{ book.hari_terlambat }} hari)
                             </li>
                         {% endfor %}
@@ -91,8 +94,8 @@
                     <ul>
                         {% for book in upcoming_due_books %}
                             <li>
-                                <a href="{{ url_for('book_detail', book_id=book.book_id) }}">{{ book.judul }}</a> 
-                                - Jatuh tempo: {{ book.jatuh_tempo }} 
+                                <a href="{{ url_for('book_detail', book_id=book.book_id) }}">{{ book.judul }}</a>
+                                - Jatuh tempo: {{ book.jatuh_tempo }}
                                 {% if book.sisa_hari == 0 %}
                                     (Hari Ini!)
                                 {% else %}
@@ -104,20 +107,22 @@
                 </div>
             {% endif %}
         </div>
-        
-        <h3 class="section-subtitle">Histori Peminjaman Anda</h3> {% if loan_history %}
+
+        <h3 class="section-subtitle">Histori Peminjaman Anda</h3>
+        {% if loan_history %}
             <div class="table-container">
-                <table>
+                <table class="loan-history-table">
                     <thead>
                         <tr>
-                            <th class="user-dashboard-th">No.</th> <th class="user-dashboard-th">Judul Buku</th>
-                            <th class="user-dashboard-th">Tipe</th>
-                            <th class="user-dashboard-th">Tgl Pinjam</th>
-                            <th class="user-dashboard-th">Tgl Jatuh Tempo</th>
-                            <th class="user-dashboard-th">Tgl Kembali</th>
-                            <th class="user-dashboard-th">Status</th>
-                            <th class="user-dashboard-th">Denda (Rp)</th>
-                            <th class="user-dashboard-th">Aksi</th>
+                            <th>No.</th>
+                            <th>Judul Buku</th>
+                            <th>Tipe</th>
+                            <th>Tgl Pinjam</th>
+                            <th>Tgl Jatuh Tempo</th>
+                            <th>Tgl Kembali</th>
+                            <th>Status</th>
+                            <th>Denda (Rp)</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -132,10 +137,12 @@
                             <td class="status-{{ loan.status_pinjaman.lower().replace(' ', '_').replace('-', '_') }}">{{ loan.status_pinjaman.replace('_', ' ').capitalize() }}</td>
                             <td>{{ "{:,.0f}".format(loan.denda) if loan.denda is not none else '0' }}</td>
                             <td>
-                                {% if loan.tipe_pinjaman == 'fisik' and loan.status_pinjaman == 'dipinjam' %}
+                                {% if loan.tipe_pinjaman == 'fisik' %}
                                     <a href="{{ url_for('loan_receipt', loan_id=loan.loan_id) }}" class="action-link">Lihat Struk</a>
-                                {% elif loan.tipe_pinjaman == 'digital' and loan.status_pinjaman == 'diunduh' %}
+                                {% elif loan.tipe_pinjaman == 'digital' %}
                                     <a href="{{ url_for('borrow_book', book_id=loan.book_id) }}" class="action-link">Unduh Lagi</a>
+                                {% else %}
+                                    <span>-</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -167,7 +174,7 @@
             navToggle.addEventListener('click', () => {
                 mainNav.classList.toggle('nav-open');
                 navToggle.classList.toggle('nav-open');
-                
+
                 const isExpanded = mainNav.classList.contains('nav-open');
                 navToggle.setAttribute('aria-expanded', isExpanded);
             });

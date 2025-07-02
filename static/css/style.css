@@ -245,7 +245,15 @@ button[type="submit"].form-submit-btn:hover, .btn-save-profile:hover { backgroun
 .dashboard-container h3.section-subtitle, .dashboard-container h3 { font-size: 1.5em; color: #0056b3; margin-top: 30px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #e0e0e0; }
 .user-profile { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 30px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 15px; }
 .user-profile .profile-pic-container { flex-shrink: 0; }
-.user-profile .profile-pic { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #00A6FF; background-color: #e0e0e0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.user-profile .profile-pic { 
+    width: 100px; 
+    height: 100px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+    border: 3px solid #dee2e6; 
+    background-color: #e0e0e0; 
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+}
 .user-profile .profile-info { flex-grow: 1; width: 100%; }
 .user-profile .profile-info h3 { margin-top: 0; margin-bottom: 15px; font-size: 1.3em; color: #333; border-bottom: none; padding-bottom: 0; text-align: center; }
 .user-profile .profile-info p { margin: 8px 0; font-size: 0.95em; color: #555; }
@@ -268,32 +276,88 @@ button[type="submit"].form-submit-btn:hover, .btn-save-profile:hover { backgroun
 .notification-overdue li::before { content: "❗"; }
 .notification-upcoming { border-left-color: #ffc107; }
 .notification-upcoming h4 { color: #b8860b; }
-.notification-upcoming li::before { content: "�"; }
+.notification-upcoming li::before { content: "🔔"; }
 .notification-box a { color: #0056b3; font-weight: 500; }
 .notification-box a:hover { text-decoration: underline; }
-.table-container { overflow-x: auto; background-color: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-top: 15px; }
-.dashboard-container table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-.dashboard-container table th, .dashboard-container table td { border: 1px solid #e0e0e0; padding: 10px 12px; text-align: left; vertical-align: middle; }
-.dashboard-container table th { 
-    background-color: #00A6FF; /* Warna header tabel dashboard sesuai header utama */
-    color: white; 
-    font-weight: 600; 
-    white-space: nowrap; 
+
+/* =================================================================
+   === PENYESUAIAN FINAL TABEL DASHBOARD (GAYA ADMIN) ===
+   ================================================================= */
+
+/* Container untuk membungkus tabel, memberikan efek kartu */
+.table-container {
+    width: 100%;
+    overflow-x: auto;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    margin-top: 20px;
+    box-sizing: border-box;
 }
-.user-dashboard-th { background-color: #00A6FF !important; } /* Warna spesifik untuk TH di dashboard */
-.dashboard-container table tbody tr:nth-child(even) { background-color: #f8f9fa; }
-.dashboard-container table tbody tr:hover { background-color: #e9ecef; }
 
-/* PERBAIKAN WARNA STATUS */
-.status-dipinjam { color: #fd7e14; font-weight: bold; } /* Oranye */
-.status-diunduh { color: #20c997; font-weight: bold; } /* Teal */
-.status-dikembalikan { color: #0d6efd; font-weight: bold; } /* Biru standar */
-.status-terlambat_dikembalikan { color: #dc3545; font-weight: bold; } /* Merah */
+/* Menargetkan tabel dengan class yang kita tambahkan di HTML */
+.loan-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95em;
+}
 
-.table-container .action-link { font-size: 0.85em; padding: 5px 10px; border-radius: 4px; text-decoration: none; color: white; background-color: #6c757d; display: inline-block; margin-top: 3px; transition: background-color 0.2s; }
-.table-container .action-link:hover { background-color: #5a6268; }
-.table-container .action-link.download-again { background-color: #28a745; }
-.table-container .action-link.download-again:hover { background-color: #218838; }
+/* Style untuk SEMUA sel, header (th) dan data (td) - MENIRU admin_style.css */
+.loan-history-table th,
+.loan-history-table td {
+    padding: 14px 16px;
+    border: 1px solid #dee2e6; /* Garis penuh (horizontal & vertikal) yang jelas */
+    text-align: left;
+    vertical-align: middle;
+}
+
+/* Style KHUSUS untuk header tabel - MENIRU admin_style.css */
+.loan-history-table thead th {
+    background-color: #f1f3f5;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Style untuk baris genap di body tabel, agar belang-belang - MENIRU admin_style.css */
+.loan-history-table tbody tr:nth-of-type(even) {
+    background-color: #f8f9fa;
+}
+
+/* Style untuk baris saat mouse diarahkan ke atasnya (hover) - MENIRU admin_style.css */
+.loan-history-table tbody tr:hover {
+    background-color: #e9ecef;
+}
+
+/* Style untuk tombol Aksi di dalam tabel */
+.table-container .action-link {
+    display: inline-block;
+    font-size: 0.9em;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 5px;
+    text-decoration: none;
+    color: white;
+    background-color: #007bff; /* Warna biru primer */
+    transition: background-color 0.2s ease;
+    border: none;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.table-container .action-link:hover {
+    background-color: #0056b3; /* Warna biru lebih gelap saat hover */
+}
+
+/* WARNA STATUS */
+.status-dipinjam { color: #fd7e14; font-weight: bold; }
+.status-diunduh { color: #20c997; font-weight: bold; }
+.status-dikembalikan { color: #0d6efd; font-weight: bold; }
+.status-terlambat_dikembalikan { color: #dc3545; font-weight: bold; }
+
+/* Akhir dari perbaikan tabel */
+
+
 .fines-info { margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; border-radius: 5px; text-align: center; font-size: 0.95em; }
 .fines-info strong { font-size: 1.1em; }
 .no-history { text-align: center; font-size: 1.1em; color: #6c757d; margin-top: 25px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; }
@@ -548,8 +612,11 @@ button[type="submit"].form-submit-btn:hover, .btn-save-profile:hover { backgroun
     .notification-box h4 { font-size: 1em; }
     .notification-box li { font-size: 0.85em; padding-left: 20px; }
     .notification-box li::before { top: 1px; }
-    .dashboard-container table { font-size: 0.8em; }
-    .dashboard-container table th, .dashboard-container table td { padding: 6px 8px; }
+    
+    /* Ukuran font dan padding tabel di mobile */
+    .loan-history-table { font-size: 0.8em; }
+    .loan-history-table th, .loan-history-table td { padding: 10px 12px; }
+
     .catalog-search-container form { flex-direction: column; gap: 10px; width: 100%; }
     .catalog-search-container input[type="text"],
     .catalog-search-container button[type="submit"] { width: 100%; border-radius: 6px; border-right: 1px solid #ced4da; border-left: 1px solid #ced4da; height: auto; padding: 10px 12px; }
@@ -579,7 +646,6 @@ button[type="submit"].form-submit-btn:hover, .btn-save-profile:hover { backgroun
     .book-card p { font-size: 0.75em; }
     .book-card .category { font-size: 0.7em; }
     .book-card .details-link { font-size: 0.8em; padding: 6px 8px; }
-
 
     .stats-overview-container { grid-template-columns: 1fr; } 
 }

@@ -1,6 +1,5 @@
 -- Skema Database DigiPustaka
 
--- Hapus tabel jika sudah ada (untuk kemudahan inisialisasi ulang selama pengembangan)
 DROP TABLE IF EXISTS loans;
 DROP TABLE IF EXISTS books;
 DROP TABLE IF EXISTS categories;
