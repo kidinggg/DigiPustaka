@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Laporan Aktivitas DigiPustaka</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 1.5cm;
+            @bottom-center {
+                content: "Halaman " counter(page) " dari " counter(pages);
+                font-family: 'Helvetica', 'Arial', sans-serif; 
+                font-size: 8pt;
+                color: #888;
+            }
+        }
+        body { 
+            font-family: 'Helvetica', 'Arial', sans-serif; 
+            font-size: 10pt;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 22pt;
+            margin: 0;
+            color: #000;
+        }
+        .header .subtitle {
+            font-size: 9pt;
+            color: #555;
+            margin-top: 5px;
+        }
+        h2 {
+            font-size: 14pt;
+            margin-top: 25px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            page-break-before: auto;
+            page-break-after: avoid;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            page-break-inside: avoid;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .summary-stats {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            display: block;
+            page-break-inside: avoid;
+        }
+        .summary-stats h2 {
+            margin-top: 0;
+            border-bottom: none;
+            font-size: 14pt;
+        }
+        .stats-grid {
+            display: block;
+        }
+        .stat-item {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 11pt;
+        }
+        .stat-item strong {
+            display: inline-block;
+            width: 150px;
+        }
+        .text-center { text-align: center; }
+        .text-danger { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DigiPustaka</h1>
+        <p class="subtitle">Laporan Aktivitas Lengkap | Dicetak pada: {{ tanggal_cetak }}</p>
+    </div>
+
+    <div class="summary-stats">
+        <h2>Ringkasan Statistik</h2>
+        <div class="stats-grid">
+            <div class="stat-item"><strong>Total Denda:</strong> Rp {{ "{:,.0f}".format(stats.total_denda) }}</div>
+            <div class="stat-item"><strong>Pinjaman Hari Ini:</strong> {{ stats.pinjaman_hari_ini }}</div>
+            <div class="stat-item"><strong>Pinjaman Bulan Ini:</strong> {{ stats.pinjaman_bulan_ini }}</div>
+            <div class="stat-item"><strong>Pinjaman Tahun Ini:</strong> {{ stats.pinjaman_tahun_ini }}</div>
+            <div class="stat-item"><strong>Total Semua Pinjaman:</strong> {{ stats.pinjaman_total }}</div>
+        </div>
+    </div>
+
+    <h2>Laporan Kunjungan</h2>
+    <table>
+        <thead>
+            <tr><th style="width:5%;">No</th><th>Waktu</th><th>Nama Anggota</th><th>Nomor Anggota</th></tr>
+        </thead>
+        <tbody>
+            {% for item in kunjungan %}
+            <tr><td>{{ loop.index }}</td><td>{{ item.waktu_kunjungan.split('.')[0] }}</td><td>{{ item.nama_lengkap }}</td><td>{{ item.nomor_anggota }}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center">Tidak ada data kunjungan.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Peminjaman Fisik Aktif</h2>
+    <table>
+        <thead>
+            <tr><th style="width:5%;">No</th><th>Tgl Pinjam</th><th>Jatuh Tempo</th><th>Nama</th><th>Judul Buku</th></tr>
+        </thead>
+        <tbody>
+            {% for item in peminjaman %}
+            <tr><td>{{ loop.index }}</td><td>{{ item.tanggal_pinjam.split(' ')[0] }}</td><td>{{ item.tanggal_jatuh_tempo.split(' ')[0] }}</td><td>{{ item.nama_lengkap }}</td><td>{{ item.judul }}</td></tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center">Tidak ada data peminjaman aktif.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <h2>Riwayat Pengembalian Fisik</h2>
+    <table>
+        <thead>
+            <tr><th style="width:5%;">No</th><th>Tgl Kembali</th><th>Nama</th><th>Judul Buku</th><th>Denda</th></tr>
+        </thead>
+        <tbody>
+            {% for item in pengembalian %}
+            <tr><td>{{ loop.index }}</td><td>{{ item.tanggal_kembali.split('.')[0] }}</td><td>{{ item.nama_lengkap }}</td><td>{{ item.judul }}</td><td>Rp {{ "{:,.0f}".format(item.denda) }}</td></tr>
+            {% else %}
+            <tr><td colspan="5" class="text-center">Tidak ada riwayat pengembalian.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Riwayat Unduh E-Book</h2>
+    <table>
+        <thead>
+            <tr><th style="width:5%;">No</th><th>Waktu Unduh</th><th>Nama Anggota</th><th>Judul Buku</th></tr>
+        </thead>
+        <tbody>
+            {% for item in unduhan %}
+            <tr><td>{{ loop.index }}</td><td>{{ item.tanggal_pinjam.split('.')[0] }}</td><td>{{ item.nama_lengkap }}</td><td>{{ item.judul }}</td></tr>
+            {% else %}
+            <tr><td colspan="4" class="text-center">Tidak ada riwayat unduhan.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,0 +1,63 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Profil Saya - {{ super() }}{% endblock %}
+
+{% block page_title %}Profil Saya{% endblock %}
+
+{% block content %}
+<div class="card-container-grid" style="grid-template-columns: 1fr 2fr;">
+    <!-- Kolom untuk Foto dan Info Utama -->
+    <div class="card card-primary">
+        <div class="card-body text-center">
+            <img src="{{ url_for('static', filename=user.foto_profil_path if user.foto_profil_path else 'img/undraw_profile.svg') }}" 
+                 class="img-fluid rounded-circle mb-3" 
+                 alt="Foto Profil" 
+                 style="width: 150px; height: 150px; object-fit: cover; border: 4px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 class="card-title mb-1">{{ user.nama_lengkap }}</h4>
+            <p class="text-muted mb-2">{{ user.nomor_anggota }}</p>
+            <span class="badge badge-success" style="font-size: 1em;">{{ user.role|capitalize }}</span>
+        </div>
+    </div>
+
+    <!-- Kolom untuk Detail Informasi -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Detail Informasi Akun</h3>
+        </div>
+        <div class="card-body">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item">
+                    <strong>Email:</strong>
+                    <p class="mb-0">{{ user.email }}</p>
+                </li>
+                <li class="list-group-item">
+                    <strong>Nomor Telepon:</strong>
+                    <p class="mb-0">{{ user.no_telepon or 'Belum diisi' }}</p>
+                </li>
+                <li class="list-group-item">
+                    <strong>Alamat:</strong>
+                    <p class="mb-0">{{ user.alamat or 'Belum diisi' }}</p>
+                </li>
+                <li class="list-group-item">
+                    <strong>Tanggal Terdaftar:</strong>
+                    <!-- 
+                        PERBAIKAN DI SINI:
+                        Menggunakan user.tgl_daftar_dt (objek datetime)
+                        bukan user.tgl_daftar (string)
+                    -->
+                    <p class="mb-0">{{ user.tgl_daftar_dt.strftime('%d %B %Y, %H:%M') if user.tgl_daftar_dt else '-' }}</p>
+                </li>
+                <li class="list-group-item">
+                    <strong>Terakhir Diperbarui:</strong>
+                    <p class="mb-0">{{ user.updated_at_dt.strftime('%d %B %Y, %H:%M') if user.updated_at_dt else '-' }}</p>
+                </li>
+            </ul>
+            <div class="form-actions mt-4">
+                <a href="{{ url_for('edit_profile') }}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> Edit Profil
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

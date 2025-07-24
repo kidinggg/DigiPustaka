@@ -97,5 +97,12 @@ CREATE TABLE user_action_requests (
     FOREIGN KEY (processed_by_admin_id) REFERENCES users (user_id) ON DELETE SET NULL
 );
 
+CREATE TABLE kunjungan (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_anggota INTEGER NOT NULL,
+    waktu_kunjungan TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_anggota) REFERENCES users (user_id) 
+);
+
 CREATE INDEX IF NOT EXISTS idx_action_requests_status ON user_action_requests (status);
 CREATE INDEX IF NOT EXISTS idx_action_requests_target_user ON user_action_requests (target_user_id);

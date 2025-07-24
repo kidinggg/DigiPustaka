@@ -1,0 +1,159 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Catat Kunjungan Anggota - {{ super() }}{% endblock %}
+
+{% block page_title %}Catat Kunjungan Anggota{% endblock %}
+
+{% block content %}
+<div class="card-container-grid" style="grid-template-columns: 1fr 1fr; align-items: flex-start;">
+    
+    <!-- Kolom Kiri: Pemindai QR dan Form -->
+    <div class="card card-primary">
+        <div class="card-header">
+            <h3>Pencatatan Kunjungan</h3>
+        </div>
+        <div class="card-body">
+            <!-- Area untuk Pemindai QR -->
+            <div id="qr-reader" style="width: 100%; max-width: 500px; margin: 0 auto 20px;"></div>
+            <div id="qr-reader-results" class="text-center"></div>
+
+            <p class="card-description text-center">
+                Arahkan kamera ke QR Code pada kartu anggota, atau gunakan pencarian di samping.
+            </p>
+            <hr>
+            
+            <!-- Form untuk mencatat kunjungan -->
+            <form action="{{ url_for('admin_catat_kunjungan') }}" method="post" class="form-modern" id="kunjunganForm">
+                <div class="form-group">
+                    <label for="nomor_anggota">Nomor Anggota</label>
+                    <input type="text" id="nomor_anggota" name="nomor_anggota" class="form-control" placeholder="Hasil pindaian atau pilihan..." required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-full-width">
+                        <i class="fas fa-check-circle"></i> Catat Kunjungan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kolom Kanan: Pencarian Manual dan Riwayat -->
+    <div class="card">
+        <div class="card-header">
+            <h3>Cari Anggota & Riwayat</h3>
+        </div>
+        <div class="card-body">
+            <!-- Form Pencarian -->
+            <div class="form-group">
+                <label for="search_nama">Cari Berdasarkan Nama</label>
+                <input type="text" id="search_nama" class="form-control" placeholder="Ketik min. 3 huruf...">
+            </div>
+            <div id="search-results" class="list-group mt-2"></div>
+            
+            <hr class="my-4">
+
+            <!-- Riwayat Kunjungan Terakhir -->
+            <h4 class="mb-3">10 Kunjungan Terakhir</h4>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Waktu</th>
+                            <th>Nama Anggota</th>
+                            <th>Nomor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for kunjungan in kunjungan_terakhir %}
+                        <tr>
+                            <td>{{ kunjungan.waktu_kunjungan_dt.strftime('%d %b, %H:%M') if kunjungan.waktu_kunjungan_dt else '-' }}</td>
+                            <td>{{ kunjungan.nama_lengkap }}</td>
+                            <td>{{ kunjungan.nomor_anggota }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center">Belum ada riwayat kunjungan.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // === FUNGSI UNTUK SCANNER QR CODE ===
+    function onScanSuccess(decodedText, decodedResult) {
+        // decodedText berisi data dari QR code (misal: "DP000001")
+        console.log(`Code matched = ${decodedText}`, decodedResult);
+        
+        // Mengisi form dengan hasil pindaian
+        document.getElementById('nomor_anggota').value = decodedText;
+        
+        // Memberikan notifikasi visual
+        const resultContainer = document.getElementById('qr-reader-results');
+        resultContainer.innerHTML = `<div class="alert alert-success">Berhasil Memindai: ${decodedText}</div>`;
+        
+        // Hentikan pemindai setelah berhasil
+        html5QrcodeScanner.clear();
+    }
+
+    function onScanFailure(error) {
+        // Tidak perlu menampilkan error terus-menerus, cukup log di console
+        // console.warn(`QR error = ${error}`);
+    }
+
+    let html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader", 
+        { fps: 10, qrbox: {width: 250, height: 250} },
+        /* verbose= */ false);
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+
+
+    // === FUNGSI UNTUK PENCARIAN NAMA ===
+    const searchInput = document.getElementById('search_nama');
+    const searchResults = document.getElementById('search-results');
+    const nomorAnggotaInput = document.getElementById('nomor_anggota');
+
+    searchInput.addEventListener('keyup', function() {
+        const query = searchInput.value;
+        if (query.length < 3) {
+            searchResults.innerHTML = '';
+            return;
+        }
+
+        // Panggil API yang sudah kita buat di app.py
+        fetch(`{{ url_for('api_search_member') }}?q=${query}`)
+            .then(response => response.json())
+            .then(data => {
+                searchResults.innerHTML = ''; // Kosongkan hasil sebelumnya
+                if (data.length > 0) {
+                    data.forEach(member => {
+                        const item = document.createElement('a');
+                        item.href = '#';
+                        item.className = 'list-group-item list-group-item-action';
+                        item.innerHTML = `<strong>${member.nama_lengkap}</strong><br><small>${member.nomor_anggota}</small>`;
+                        
+                        item.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            // Isi form dengan data anggota yang dipilih
+                            nomorAnggotaInput.value = member.nomor_anggota;
+                            // Kosongkan hasil pencarian
+                            searchResults.innerHTML = '';
+                            searchInput.value = '';
+                        });
+                        
+                        searchResults.appendChild(item);
+                    });
+                } else {
+                    searchResults.innerHTML = '<div class="list-group-item">Anggota tidak ditemukan.</div>';
+                }
+            });
+    });
+});
+</script>
+{% endblock %}

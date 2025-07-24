@@ -1,0 +1,208 @@
+{% extends "admin/admin_base.html" %}
+
+{% block head_extra %}
+<style>
+    /* CSS Khusus untuk memastikan tabel di halaman ini memiliki style */
+    .table {
+        width: 100%;
+        margin-bottom: 1rem;
+        color: #333;
+        border-collapse: collapse;
+        background-color: #fff;
+    }
+    .table th,
+    .table td {
+        padding: 0.75rem 1rem;
+        vertical-align: top;
+        border: 1px solid #e3e6f0; /* Garis tabel yang konsisten */
+    }
+    .table thead th {
+        vertical-align: bottom;
+        border-bottom: 2px solid #4e73df; /* Border bawah header tabel */
+        background-color: #f8f9fc;
+        color: #4e73df;
+        font-weight: bold;
+        text-align: left;
+    }
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: #f8f9fc;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #eaecf4;
+    }
+    .text-center {
+        text-align: center;
+    }
+    .text-danger {
+        color: #e74a3b !important;
+    }
+    .font-weight-bold {
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block title %}Laporan Aktivitas - {{ super() }}{% endblock %}
+
+{% block page_title %}Laporan Aktivitas Perpustakaan{% endblock %}
+
+{% block content %}
+<div class="page-actions">
+    <a href="{{ url_for('admin_unduh_laporan_pdf') }}" class="btn btn-danger">
+        <i class="fas fa-file-pdf"></i> Unduh Laporan Lengkap (PDF)
+    </a>
+    <p class="page-description">
+        Halaman ini menampilkan ringkasan aktivitas terbaru. Untuk laporan lengkap, silakan gunakan fitur unduh PDF.
+    </p>
+</div>
+
+<!-- KARTU STATISTIK -->
+<div class="card-container-grid dashboard-stats-grid">
+    <div class="card stat-card">
+        <h4>Rp {{ "{:,.0f}".format(stats.total_denda) }}</h4>
+        <p>Total Denda Terkumpul</p>
+    </div>
+    <div class="card stat-card">
+        <h4>{{ stats.pinjaman_hari_ini }}</h4>
+        <p>Peminjaman Hari Ini</p>
+    </div>
+    <div class="card stat-card">
+        <h4>{{ stats.pinjaman_bulan_ini }}</h4>
+        <p>Peminjaman Bulan Ini</p>
+    </div>
+    <div class="card stat-card">
+        <h4>{{ stats.pinjaman_tahun_ini }}</h4>
+        <p>Peminjaman Tahun Ini</p>
+    </div>
+</div>
+
+<!-- Peminjaman Aktif -->
+<div class="card">
+    <div class="card-header">
+        <h3>Peminjaman Fisik Aktif</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Tgl Pinjam</th>
+                        <th>Jatuh Tempo</th>
+                        <th>Nama Peminjam</th>
+                        <th>Judul Buku</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in peminjaman %}
+                    <tr>
+                        <td>{{ item.tanggal_pinjam.split(' ')[0] }}</td>
+                        <td class="{{ 'text-danger font-weight-bold' if item.is_overdue else '' }}">
+                            {{ item.tanggal_jatuh_tempo.split(' ')[0] }}
+                        </td>
+                        <td>{{ item.nama_lengkap }} ({{ item.nomor_anggota }})</td>
+                        <td>{{ item.judul }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center">Tidak ada data peminjaman aktif.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Laporan Kunjungan -->
+<div class="card">
+    <div class="card-header">
+        <h3>20 Kunjungan Terakhir</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Waktu</th>
+                        <th>Nama Anggota</th>
+                        <th>Nomor Anggota</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in kunjungan %}
+                    <tr>
+                        <td>{{ item.waktu_kunjungan.split('.')[0] }}</td>
+                        <td>{{ item.nama_lengkap }}</td>
+                        <td>{{ item.nomor_anggota }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="text-center">Tidak ada data kunjungan.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Riwayat Pengembalian -->
+<div class="card">
+    <div class="card-header">
+        <h3>20 Pengembalian Fisik Terakhir</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Tgl Kembali</th>
+                        <th>Nama Peminjam</th>
+                        <th>Judul Buku</th>
+                        <th>Denda</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in pengembalian %}
+                    <tr>
+                        <td>{{ item.tanggal_kembali.split('.')[0] }}</td>
+                        <td>{{ item.nama_lengkap }} ({{ item.nomor_anggota }})</td>
+                        <td>{{ item.judul }}</td>
+                        <td>Rp {{ "{:,.0f}".format(item.denda) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center">Tidak ada riwayat pengembalian.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Riwayat Unduh E-Book -->
+<div class="card">
+    <div class="card-header">
+        <h3>20 Unduhan E-Book Terakhir</h3>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Waktu Unduh</th>
+                        <th>Nama Anggota</th>
+                        <th>Judul Buku</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in unduhan %}
+                    <tr>
+                        <td>{{ item.tanggal_pinjam.split('.')[0] }}</td>
+                        <td>{{ item.nama_lengkap }} ({{ item.nomor_anggota }})</td>
+                        <td>{{ item.judul }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="3" class="text-center">Tidak ada riwayat unduhan.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

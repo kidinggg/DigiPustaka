@@ -1,16 +1,25 @@
 import sqlite3
-from flask import Flask, render_template, request, redirect, url_for, g, flash, session, abort, send_from_directory, jsonify
+from flask import Flask, render_template, request, redirect, url_for, g, flash, session, abort, send_from_directory, jsonify, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import functools 
+import functools
 import os
 import datetime
-import re 
+import re
 from markupsafe import Markup, escape
 
+# --- Tambahan untuk Fitur Baru (Unduh PDF) ---
+try:
+    from weasyprint import HTML
+except ImportError:
+    HTML = None
+
+# =============================================================================
+# KONFIGURASI APLIKASI
+# =============================================================================
 app = Flask(__name__)
 DATABASE = 'digipustaka.db'
-app.secret_key = 'ganti_dengan_kunci_rahasia_super_aman_dan_unik_milik_anda_123!@#' 
+app.secret_key = 'ganti_dengan_kunci_rahasia_super_aman_dan_unik_milik_anda_123!@#'
 
 # Konfigurasi Path dan Folder Upload
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -19,7 +28,7 @@ UPLOAD_FOLDER_COVER = os.path.join(STATIC_FOLDER, 'uploads', 'covers')
 UPLOAD_FOLDER_EBOOK = os.path.join(STATIC_FOLDER, 'uploads', 'ebooks')
 UPLOAD_FOLDER_PROFILE = os.path.join(STATIC_FOLDER, 'uploads', 'profile_photos')
 ALLOWED_EXTENSIONS_IMAGE = {'png', 'jpg', 'jpeg', 'gif'}
-ALLOWED_EXTENSIONS_EBOOK = {'pdf', 'epub', 'mobi'} 
+ALLOWED_EXTENSIONS_EBOOK = {'pdf', 'epub', 'mobi'}
 app.config['UPLOAD_FOLDER_COVER'] = UPLOAD_FOLDER_COVER
 app.config['UPLOAD_FOLDER_EBOOK'] = UPLOAD_FOLDER_EBOOK
 app.config['UPLOAD_FOLDER_PROFILE'] = UPLOAD_FOLDER_PROFILE
@@ -27,9 +36,13 @@ os.makedirs(UPLOAD_FOLDER_COVER, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_EBOOK, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_PROFILE, exist_ok=True)
 
-DENDA_PER_HARI = 500 
+# Konfigurasi Lainnya
+DENDA_PER_HARI = 500
 JATUH_TEMPO_HARI_PERINGATAN = 3
 
+# =============================================================================
+# FUNGSI HELPERS & DATABASE
+# =============================================================================
 @app.template_filter('nl2br')
 def nl2br_filter(s):
     if s is None:
@@ -70,12 +83,12 @@ def init_db():
         cursor = db.cursor()
         cursor.execute("SELECT COUNT(category_id) FROM categories")
         count = cursor.fetchone()[0]
-        if count == 0: 
+        if count == 0:
             for category_name in default_categories:
                 try:
                     cursor.execute("INSERT INTO categories (nama_kategori) VALUES (?)", (category_name,))
                 except sqlite3.IntegrityError:
-                    pass 
+                    pass
             db.commit()
             print(f"{len(default_categories)} kategori default telah ditambahkan.")
         else:
@@ -87,6 +100,17 @@ def init_db_command():
     init_db()
     print('Database telah diinisialisasi dengan benar (termasuk kategori default jika tabel kosong).')
 
+def parse_datetime_str(date_str, format='%Y-%m-%d %H:%M:%S'):
+    if not date_str:
+        return None
+    try:
+        return datetime.datetime.strptime(date_str.split('.')[0], format)
+    except (ValueError, TypeError):
+        return None
+
+# =============================================================================
+# DECORATORS & MIDDLEWARE
+# =============================================================================
 def login_required(view):
     @functools.wraps(view)
     def wrapped_view(**kwargs):
@@ -104,7 +128,7 @@ def admin_required(view):
             return redirect(url_for('login', next=request.url))
         if g.user['role'] != 'admin':
             flash("Anda tidak memiliki izin Admin untuk mengakses halaman ini.", "danger")
-            return redirect(url_for('index'))
+            return redirect(url_for('admin_dashboard'))
         return view(**kwargs)
     return wrapped_view
 
@@ -118,67 +142,37 @@ def staff_required(view):
             flash("Anda tidak memiliki izin Staf untuk mengakses halaman ini.", "danger")
             if g.user['role'] == 'anggota':
                 return redirect(url_for('dashboard'))
-            return redirect(url_for('index')) 
+            return redirect(url_for('index'))
         return view(**kwargs)
     return wrapped_view
 
 @app.before_request
 def load_logged_in_user():
     user_id = session.get('user_id')
-    g.user = None 
+    g.user = None
     if user_id is not None:
         db = get_db()
         user_data_row = db.execute(
             'SELECT * FROM users WHERE user_id = ?', (user_id,)
         ).fetchone()
         if user_data_row and user_data_row['is_active'] == 1:
-             g.user = dict(user_data_row) 
+             g.user = dict(user_data_row)
              g.user['tgl_daftar_dt'] = parse_datetime_str(g.user.get('tgl_daftar'))
              g.user['updated_at_dt'] = parse_datetime_str(g.user.get('updated_at'))
         elif user_data_row and user_data_row['is_active'] == 0:
-             session.clear() 
-
-def parse_datetime_str(date_str, format='%Y-%m-%d %H:%M:%S'):
-    if not date_str:
-        return None
-    try:
-        return datetime.datetime.strptime(date_str.split('.')[0], format)
-    except (ValueError, TypeError):
-        print(f"Warning: Could not parse date string '{date_str}' with format '{format}'")
-        return None
+             session.clear()
 
 @app.context_processor
 def inject_global_vars():
-    user_for_template = g.get('user', None) 
+    user_for_template = g.get('user', None)
     return {'current_year': datetime.datetime.now().year, 
             'g_user': user_for_template,
-            'now': datetime.datetime.now()}
+            'now': datetime.datetime.now(),
+            'parse_datetime_str': parse_datetime_str}
 
-# --- RUTE PUBLIK DAN ANGGOTA ---
-@app.route('/')
-def index():
-    db = get_db()
-    recent_books = db.execute(
-        """
-        SELECT b.book_id, b.judul, b.pengarang, b.cover_image_path, b.jenis_buku, c.nama_kategori
-        FROM books b
-        LEFT JOIN categories c ON b.category_id = c.category_id
-        ORDER BY b.book_id DESC 
-        LIMIT 4 
-        """
-    ).fetchall()
-    total_buku = db.execute("SELECT COUNT(book_id) FROM books").fetchone()[0] or 0
-    total_anggota = db.execute("SELECT COUNT(user_id) FROM users WHERE role = 'anggota' AND is_active = 1").fetchone()[0] or 0
-    total_peminjaman_fisik_aktif = db.execute("SELECT COUNT(loan_id) FROM loans WHERE status_pinjaman = 'dipinjam' AND tipe_pinjaman = 'fisik'").fetchone()[0] or 0
-    total_unduhan_digital = db.execute("SELECT COUNT(loan_id) FROM loans WHERE tipe_pinjaman = 'digital' AND status_pinjaman = 'diunduh'").fetchone()[0] or 0
-    return render_template('index.html', 
-                           title="Selamat Datang di Digi Pustaka", 
-                           recent_books=recent_books,
-                           total_buku=total_buku,
-                           total_anggota=total_anggota,
-                           total_peminjaman_fisik_aktif=total_peminjaman_fisik_aktif,
-                           total_unduhan_digital=total_unduhan_digital)
-
+# =============================================================================
+# RUTE OTENTIKASI & PUBLIK
+# =============================================================================
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if g.user:
@@ -193,8 +187,8 @@ def register():
         db = get_db()
         error = None
         nomor_anggota_final = None
-        prefix_id = "DP" 
-        panjang_nomor_angka = 6 
+        prefix_id = "DP"
+        panjang_nomor_angka = 6
         try:
             last_member_data = db.execute(
                 f"SELECT nomor_anggota FROM users WHERE nomor_anggota LIKE '{prefix_id}%' "
@@ -231,7 +225,7 @@ def register():
                 flash('Registrasi berhasil! Silakan login.', 'success')
                 return redirect(url_for('login'))
             except sqlite3.IntegrityError: error = "Terjadi kesalahan unik saat menyimpan data (misal nomor anggota duplikat). Coba lagi."
-            except sqlite3.Error as e: 
+            except sqlite3.Error as e:
                 error = f"Gagal menyimpan ke database: {e}"
                 print(f"SQLite Error on INSERT: {e}")
         if error: flash(error, 'danger')
@@ -253,18 +247,20 @@ def login():
         user_data = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
         if user_data is None: error = 'Email tidak ditemukan.'
         elif not check_password_hash(user_data['password'], password): error = 'Password salah.'
-        elif user_data['is_active'] == 0: 
+        elif user_data['is_active'] == 0:
             error = 'Akun Anda saat ini tidak aktif. Silakan hubungi administrator.'
         if error is None:
             session.clear()
             session['user_id'] = user_data['user_id']
-            session['user_role'] = user_data['role'] 
+            session['nama_lengkap'] = user_data['nama_lengkap']
+            session['user_role'] = user_data['role']
+            session['foto_profil_path'] = user_data['foto_profil_path']
             flash(f"Selamat datang kembali, {user_data['nama_lengkap']}!", 'success')
-            if user_data['role'] == 'admin' or user_data['role'] == 'pustakawan':
+            if user_data['role'] in ['admin', 'pustakawan']:
                 return redirect(url_for('admin_dashboard'))
             elif user_data['role'] == 'anggota':
                 return redirect(url_for('dashboard'))
-            else: 
+            else:
                 return redirect(url_for('index'))
         flash(error, 'danger')
     return render_template('login.html', title="Login")
@@ -275,6 +271,30 @@ def logout():
     g.user = None
     flash("Anda telah berhasil logout.", 'info')
     return redirect(url_for('index'))
+
+@app.route('/')
+def index():
+    db = get_db()
+    recent_books = db.execute(
+        """
+        SELECT b.book_id, b.judul, b.pengarang, b.cover_image_path, b.jenis_buku, c.nama_kategori
+        FROM books b
+        LEFT JOIN categories c ON b.category_id = c.category_id
+        ORDER BY b.book_id DESC 
+        LIMIT 4 
+        """
+    ).fetchall()
+    total_buku = db.execute("SELECT COUNT(book_id) FROM books").fetchone()[0] or 0
+    total_anggota = db.execute("SELECT COUNT(user_id) FROM users WHERE role = 'anggota' AND is_active = 1").fetchone()[0] or 0
+    total_peminjaman_fisik_aktif = db.execute("SELECT COUNT(loan_id) FROM loans WHERE status_pinjaman = 'dipinjam' AND tipe_pinjaman = 'fisik'").fetchone()[0] or 0
+    total_unduhan_digital = db.execute("SELECT COUNT(loan_id) FROM loans WHERE tipe_pinjaman = 'digital' AND status_pinjaman = 'diunduh'").fetchone()[0] or 0
+    return render_template('index.html', 
+                           title="Selamat Datang di Digi Pustaka", 
+                           recent_books=recent_books,
+                           total_buku=total_buku,
+                           total_anggota=total_anggota,
+                           total_peminjaman_fisik_aktif=total_peminjaman_fisik_aktif,
+                           total_unduhan_digital=total_unduhan_digital)
 
 @app.route('/dashboard')
 @login_required
@@ -308,19 +328,19 @@ def dashboard():
     total_unpaid_fines = 0
     upcoming_due_books = []
     overdue_books = []
-    today = datetime.date.today() 
+    today = datetime.date.today()
     for loan in loan_history:
         if loan['status_pinjaman'] == 'terlambat_dikembalikan' and loan['denda'] > 0:
              total_unpaid_fines += loan['denda']
         if loan['tipe_pinjaman'] == 'fisik' and loan['status_pinjaman'] == 'dipinjam' and loan.get('tanggal_jatuh_tempo_dt'):
             due_date = loan['tanggal_jatuh_tempo_dt'].date()
             days_until_due = (due_date - today).days
-            if days_until_due < 0: 
+            if days_until_due < 0:
                 overdue_books.append({
                     'judul': loan['judul_buku'], 'jatuh_tempo': due_date.strftime('%Y-%m-%d'),
                     'hari_terlambat': abs(days_until_due), 'book_id': loan['book_id']
                 })
-            elif 0 <= days_until_due <= JATUH_TEMPO_HARI_PERINGATAN: 
+            elif 0 <= days_until_due <= JATUH_TEMPO_HARI_PERINGATAN:
                 upcoming_due_books.append({
                     'judul': loan['judul_buku'], 'jatuh_tempo': due_date.strftime('%Y-%m-%d'),
                     'sisa_hari': days_until_due, 'book_id': loan['book_id']
@@ -351,28 +371,28 @@ def edit_profile():
         email_baru = request.form['email']
         alamat_baru = request.form.get('alamat', '').strip()
         no_telepon_baru = request.form.get('nomor_telepon', '').strip()
-        password_baru = request.form.get('password_baru') 
+        password_baru = request.form.get('password_baru')
         konfirmasi_password_baru = request.form.get('konfirmasi_password_baru')
         if not nama_lengkap: error = "Nama lengkap tidak boleh kosong."
         elif not email_baru: error = "Email tidak boleh kosong."
         if email_baru != g.user['email']:
             user_dengan_email_baru = db.execute('SELECT user_id FROM users WHERE email = ? AND user_id != ?', (email_baru, g.user['user_id'])).fetchone()
             if user_dengan_email_baru: error = f"Email {email_baru} sudah digunakan oleh pengguna lain."
-        hashed_password_to_update = g.user['password'] 
-        if password_baru: 
+        hashed_password_to_update = g.user['password']
+        if password_baru:
             if password_baru != konfirmasi_password_baru: error = "Password baru dan konfirmasi password tidak cocok."
             elif len(password_baru) < 6: error = "Password baru minimal harus 6 karakter."
             else: hashed_password_to_update = generate_password_hash(password_baru)
-        foto_profil_path_to_update = g.user['foto_profil_path'] 
+        foto_profil_path_to_update = g.user['foto_profil_path']
         if 'foto_profil' in request.files:
             file_foto = request.files['foto_profil']
-            if file_foto.filename != '': 
+            if file_foto.filename != '':
                 if allowed_file(file_foto.filename, ALLOWED_EXTENSIONS_IMAGE):
                     if g.user['foto_profil_path']:
                         old_photo_full_path = os.path.join(STATIC_FOLDER, g.user['foto_profil_path'])
                         if os.path.exists(old_photo_full_path):
                             try: os.remove(old_photo_full_path)
-                            except OSError as e: print(f"Error deleting old profile photo: {e}") 
+                            except OSError as e: print(f"Error deleting old profile photo: {e}")
                     filename_foto = secure_filename(file_foto.filename)
                     unique_filename_foto = f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}_{filename_foto}"
                     file_foto.save(os.path.join(app.config['UPLOAD_FOLDER_PROFILE'], unique_filename_foto))
@@ -392,45 +412,31 @@ def edit_profile():
                 )
                 db.commit()
                 flash("Profil berhasil diperbarui.", "success")
-                user_data_row = db.execute('SELECT * FROM users WHERE user_id = ?', (g.user['user_id'],)).fetchone()
-                if user_data_row:
-                    g.user = dict(user_data_row)
-                    g.user['tgl_daftar_dt'] = parse_datetime_str(g.user.get('tgl_daftar'))
-                    g.user['updated_at_dt'] = parse_datetime_str(g.user.get('updated_at'))
-
+                session['nama_lengkap'] = nama_lengkap
+                session['foto_profil_path'] = foto_profil_path_to_update
+                
                 if g.user['role'] in ['admin', 'pustakawan']:
-                    return redirect(url_for('admin_dashboard'))
-                return redirect(url_for('dashboard')) 
-            except sqlite3.Error as e: 
+                    return redirect(url_for('admin_profil'))
+                return redirect(url_for('dashboard'))
+            except sqlite3.Error as e:
                 error = f"Gagal memperbarui profil: {e}"
                 print(f"SQLite Error on UPDATE: {e}")
         if error: flash(error, "danger")
     
     current_user_data_for_form = dict(g.user) if g.user else {}
-    if 'tgl_daftar_dt' not in current_user_data_for_form and current_user_data_for_form.get('tgl_daftar'):
-        current_user_data_for_form['tgl_daftar_dt'] = parse_datetime_str(current_user_data_for_form['tgl_daftar'])
-    if 'updated_at_dt' not in current_user_data_for_form and current_user_data_for_form.get('updated_at'):
-        current_user_data_for_form['updated_at_dt'] = parse_datetime_str(current_user_data_for_form['updated_at'])
-
-    if request.method == 'POST' and error: 
-        current_user_data_for_form['nama_lengkap'] = request.form.get('nama_lengkap', current_user_data_for_form.get('nama_lengkap', ''))
-        current_user_data_for_form['email'] = request.form.get('email', current_user_data_for_form.get('email', ''))
-        current_user_data_for_form['alamat'] = request.form.get('alamat', current_user_data_for_form.get('alamat', ''))
-        current_user_data_for_form['no_telepon'] = request.form.get('nomor_telepon', current_user_data_for_form.get('no_telepon', ''))
-    
     return render_template('edit_profile.html', title="Edit Profil", user_data=current_user_data_for_form)
 
 def get_books_by_type_and_category(book_type=None):
     db = get_db()
     search_query = request.args.get('search', '').strip()
-    category_filter_id = request.args.get('category_id', type=int) 
+    category_filter_id = request.args.get('category_id', type=int)
     base_query = "SELECT b.book_id, b.judul, b.pengarang, b.cover_image_path, b.jenis_buku, c.nama_kategori FROM books b LEFT JOIN categories c ON b.category_id = c.category_id"
     conditions = []
     params = []
     if book_type:
         conditions.append("b.jenis_buku = ?")
         params.append(book_type)
-    if category_filter_id: 
+    if category_filter_id:
         conditions.append("b.category_id = ?")
         params.append(category_filter_id)
     if search_query:
@@ -440,7 +446,7 @@ def get_books_by_type_and_category(book_type=None):
         params.extend([search_term, search_term, search_term])
     query_sql = base_query
     if conditions:
-        query_sql += " WHERE " + " AND ".join(conditions) 
+        query_sql += " WHERE " + " AND ".join(conditions)
     query_sql += " ORDER BY b.judul ASC"
     books_data = db.execute(query_sql, params).fetchall()
     all_categories = db.execute("SELECT category_id, nama_kategori FROM categories ORDER BY nama_kategori ASC").fetchall()
@@ -460,7 +466,7 @@ def books_catalog_digital():
 def book_detail(book_id):
     db = get_db()
     book_raw = db.execute("SELECT b.*, c.nama_kategori FROM books b LEFT JOIN categories c ON b.category_id = c.category_id WHERE b.book_id = ?", (book_id,)).fetchone()
-    if book_raw is None: abort(404) 
+    if book_raw is None: abort(404)
     book = dict(book_raw)
     book['created_at_dt'] = parse_datetime_str(book.get('created_at'))
     book['updated_at_dt'] = parse_datetime_str(book.get('updated_at'))
@@ -486,9 +492,9 @@ def borrow_book(book_id):
             )
             db.commit()
             flash(f"Anda telah meminjam (mengunduh) buku '{book['judul']}'.", "success")
-            directory = app.config['UPLOAD_FOLDER_EBOOK']
-            filename = os.path.basename(book['file_ebook_path'])
-            return send_from_directory(directory=directory, path=filename, as_attachment=True)
+            directory, filename = os.path.split(book['file_ebook_path'])
+            full_directory_path = os.path.join(STATIC_FOLDER, directory)
+            return send_from_directory(directory=full_directory_path, path=filename, as_attachment=True)
         except Exception as e:
             flash(f"Terjadi kesalahan saat memproses peminjaman digital: {e}", "danger")
         return redirect(url_for('book_detail', book_id=book_id))
@@ -503,7 +509,7 @@ def borrow_book(book_id):
                 return redirect(url_for('book_detail', book_id=book_id))
             if book['stok_fisik'] > 0:
                 tanggal_permintaan_pinjam = datetime.datetime.now()
-                tanggal_jatuh_tempo_pinjam = tanggal_permintaan_pinjam + datetime.timedelta(days=7) 
+                tanggal_jatuh_tempo_pinjam = tanggal_permintaan_pinjam + datetime.timedelta(days=7)
                 cursor = db.execute(
                     "INSERT INTO loans (user_id, book_id, tanggal_pinjam, tanggal_jatuh_tempo, tipe_pinjaman, status_pinjaman) VALUES (?, ?, ?, ?, ?, ?)",
                     (g.user['user_id'], book_id, tanggal_permintaan_pinjam, tanggal_jatuh_tempo_pinjam, 'fisik', 'menunggu_konfirmasi_admin')
@@ -544,7 +550,7 @@ def loan_receipt(loan_id):
         flash("Struk peminjaman tidak ditemukan.", "danger")
         return redirect(url_for('dashboard'))
     
-    loan_data = dict(loan_data_raw) 
+    loan_data = dict(loan_data_raw)
     loan_data['tanggal_pinjam_dt'] = parse_datetime_str(loan_data.get('tanggal_pinjam'))
     loan_data['tanggal_jatuh_tempo_dt'] = parse_datetime_str(loan_data.get('tanggal_jatuh_tempo'))
 
@@ -556,38 +562,12 @@ def loan_receipt(loan_id):
                            title="Struk Peminjaman/Permintaan Buku", 
                            loan=loan_data)
 
-# --- RUTE API UNTUK MENGAMBIL DETAIL PEMINJAMAN ---
-@app.route('/api/loan/<int:loan_id>/details')
-@staff_required
-def loan_details_api(loan_id):
-    db = get_db()
-    loan_details = db.execute(
-        """
-        SELECT 
-            l.loan_id, l.status_pinjaman,
-            u.nama_lengkap as nama_peminjam,
-            b.judul as judul_buku
-        FROM loans l
-        JOIN users u ON l.user_id = u.user_id
-        JOIN books b ON l.book_id = b.book_id
-        WHERE l.loan_id = ?
-        """, (loan_id,)
-    ).fetchone()
-
-    if not loan_details:
-        return jsonify({'error': 'Peminjaman tidak ditemukan'}), 404
-    
-    # PERBAIKAN: Memeriksa apakah statusnya valid untuk diproses (konfirmasi atau pengembalian)
-    allowed_statuses = ['menunggu_konfirmasi_admin', 'dipinjam', 'terlambat_dikembalikan']
-    if loan_details['status_pinjaman'] not in allowed_statuses:
-        return jsonify({'error': f"Status peminjaman saat ini '{loan_details['status_pinjaman'].replace('_', ' ').title()}', tidak bisa diproses."}), 400
-
-    return jsonify(dict(loan_details))
-
-# --- RUTE ADMIN & PUSTAKAWAN ---
-@app.route('/admin') 
+# =============================================================================
+# RUTE ADMIN & PUSTAKAWAN
+# =============================================================================
+@app.route('/admin')
 @app.route('/admin/dashboard')
-@staff_required 
+@staff_required
 def admin_dashboard():
     db = get_db()
     total_buku = db.execute("SELECT COUNT(book_id) FROM books").fetchone()[0] or 0
@@ -647,11 +627,11 @@ def admin_dashboard():
                            total_user_action_requests_pending=total_user_action_requests_pending,
                            recent_activities=recent_activities)
 
-# Sisa kode lengkap dari file Anda akan mengikuti...
+# --- MANAJEMEN BUKU ---
 @app.route('/admin/add_book', methods=['GET', 'POST'])
-@staff_required 
+@staff_required
 def admin_add_book():
-    db = get_db() 
+    db = get_db()
     all_categories = db.execute("SELECT category_id, nama_kategori FROM categories ORDER BY nama_kategori ASC").fetchall()
     if request.method == 'POST':
         judul = request.form['judul']
@@ -660,9 +640,9 @@ def admin_add_book():
         tahun_terbit = request.form.get('tahun_terbit')
         isbn = request.form.get('isbn')
         jumlah_halaman = request.form.get('jumlah_halaman')
-        kategori_id_input = request.form.get('category_id') 
-        kategori_nama_baru = request.form.get('kategori_nama_baru', '').strip() 
-        jenis_buku = request.form['jenis_buku'] 
+        kategori_id_input = request.form.get('category_id')
+        kategori_nama_baru = request.form.get('kategori_nama_baru', '').strip()
+        jenis_buku = request.form['jenis_buku']
         ringkasan = request.form.get('ringkasan', '')
         stok_fisik = request.form.get('stok_fisik', 0)
         cover_image_path = None
@@ -684,14 +664,14 @@ def admin_add_book():
                     db.commit()
                     category_id_to_use = cursor.lastrowid
                     flash(f"Kategori baru '{normalized_kategori_baru}' berhasil ditambahkan.", "success")
-                    all_categories = db.execute("SELECT category_id, nama_kategori FROM categories ORDER BY nama_kategori ASC").fetchall() 
-                except sqlite3.IntegrityError: 
+                    all_categories = db.execute("SELECT category_id, nama_kategori FROM categories ORDER BY nama_kategori ASC").fetchall()
+                except sqlite3.IntegrityError:
                     error = f"Kategori '{normalized_kategori_baru}' sudah ada atau terjadi kesalahan."
                 except Exception as e:
                     error = f"Gagal membuat kategori baru: {e}"
-        elif not kategori_id_input and not kategori_nama_baru : 
+        elif not kategori_id_input and not kategori_nama_baru :
              error = "Silakan pilih kategori atau tambahkan kategori baru."
-        if error: 
+        if error:
             flash(error, "danger")
             return render_template('admin/add_book.html', title="Tambah Buku Baru", categories=all_categories, request_form=request.form)
         if 'cover_image' in request.files:
@@ -703,7 +683,7 @@ def admin_add_book():
                 cover_image_path = os.path.join('uploads', 'covers', unique_filename_cover).replace('\\', '/')
             elif file_cover.filename != '': error = "Format file sampul tidak diizinkan."
         if jenis_buku == 'digital':
-            if 'file_ebook' not in request.files or request.files['file_ebook'].filename == '': 
+            if 'file_ebook' not in request.files or request.files['file_ebook'].filename == '':
                 error = "File eBook diperlukan untuk buku digital."
             else:
                 file_ebook = request.files['file_ebook']
@@ -713,7 +693,7 @@ def admin_add_book():
                     file_ebook.save(os.path.join(app.config['UPLOAD_FOLDER_EBOOK'], unique_filename_ebook))
                     file_ebook_path = os.path.join('uploads', 'ebooks', unique_filename_ebook).replace('\\', '/')
                 elif file_ebook.filename != '': error = "Format file eBook tidak diizinkan."
-        else: 
+        else:
             file_ebook_path = None
             try:
                 stok_fisik = int(stok_fisik) if str(stok_fisik).strip() else 0
@@ -730,14 +710,14 @@ def admin_add_book():
                 )
                 db.commit()
                 flash(f"Buku '{judul}' berhasil ditambahkan!", "success")
-                return redirect(url_for('admin_list_books')) 
-            except Exception as e: 
+                return redirect(url_for('admin_list_books'))
+            except Exception as e:
                 error = f"Gagal menyimpan buku ke database: {e}"
         if error: flash(error, "danger")
     return render_template('admin/add_book.html', title="Tambah Buku Baru", categories=all_categories, request_form=request.form if request.method == 'POST' else None)
 
 @app.route('/admin/books')
-@staff_required 
+@staff_required
 def admin_list_books():
     db = get_db()
     books_data_raw = db.execute(
@@ -756,7 +736,7 @@ def admin_list_books():
     return render_template('admin/list_books.html', title="Daftar Semua Buku", books=books_data)
 
 @app.route('/admin/edit_book/<int:book_id>', methods=['GET', 'POST'])
-@staff_required 
+@staff_required
 def admin_edit_book(book_id):
     db = get_db()
     book_to_edit_raw = db.execute(
@@ -772,7 +752,6 @@ def admin_edit_book(book_id):
 
     all_categories = db.execute("SELECT category_id, nama_kategori FROM categories ORDER BY nama_kategori ASC").fetchall()
     if request.method == 'POST':
-        # ... (logika POST sama seperti yang Anda berikan)
         judul = request.form['judul']
         pengarang = request.form['pengarang']
         penerbit = request.form.get('penerbit')
@@ -783,12 +762,12 @@ def admin_edit_book(book_id):
         kategori_nama_baru = request.form.get('kategori_nama_baru', '').strip()
         jenis_buku = request.form['jenis_buku']
         ringkasan = request.form.get('ringkasan', '')
-        stok_fisik = request.form.get('stok_fisik', book_to_edit['stok_fisik']) 
+        stok_fisik = request.form.get('stok_fisik', book_to_edit['stok_fisik'])
         current_cover_image_path = book_to_edit['cover_image_path']
         current_file_ebook_path = book_to_edit['file_ebook_path']
         error = None
         if not judul: error = "Judul buku diperlukan."
-        category_id_to_use = book_to_edit['category_id'] 
+        category_id_to_use = book_to_edit['category_id']
         if kategori_id_input and kategori_id_input != "new":
             category_id_to_use = int(kategori_id_input)
         elif kategori_id_input == "new" and kategori_nama_baru:
@@ -803,14 +782,14 @@ def admin_edit_book(book_id):
                     db.commit()
                     category_id_to_use = cursor.lastrowid
                     flash(f"Kategori baru '{normalized_kategori_baru}' berhasil ditambahkan.", "success")
-                    all_categories = db.execute("SELECT category_id, nama_kategori FROM categories ORDER BY nama_kategori ASC").fetchall() 
+                    all_categories = db.execute("SELECT category_id, nama_kategori FROM categories ORDER BY nama_kategori ASC").fetchall()
                 except sqlite3.IntegrityError: error = f"Kategori '{normalized_kategori_baru}' sudah ada."
                 except Exception as e: error = f"Gagal membuat kategori baru: {e}"
         elif kategori_id_input == "new" and not kategori_nama_baru:
-             error = "Nama kategori baru tidak boleh kosong jika memilih 'Tambah Kategori Baru'."
+            error = "Nama kategori baru tidak boleh kosong jika memilih 'Tambah Kategori Baru'."
         
-        form_data_for_render = { **book_to_edit, **request.form } 
-        form_data_for_render['category_id'] = category_id_to_use 
+        form_data_for_render = { **book_to_edit, **request.form }
+        form_data_for_render['category_id'] = category_id_to_use
         if category_id_to_use:
              cat_name_row = db.execute("SELECT nama_kategori FROM categories WHERE category_id = ?", (category_id_to_use,)).fetchone()
              form_data_for_render['nama_kategori'] = cat_name_row['nama_kategori'] if cat_name_row else book_to_edit.get('nama_kategori')
@@ -819,13 +798,13 @@ def admin_edit_book(book_id):
 
         if error:
             flash(error, "danger")
-            form_data_for_render['cover_image_path'] = current_cover_image_path 
+            form_data_for_render['cover_image_path'] = current_cover_image_path
             form_data_for_render['file_ebook_path'] = current_file_ebook_path
             return render_template('admin/edit_book.html', title=f"Edit Buku: {book_to_edit['judul']}", book=form_data_for_render, categories=all_categories)
         new_cover_image_path = current_cover_image_path
         if 'cover_image' in request.files:
             file_cover = request.files['cover_image']
-            if file_cover.filename != '': 
+            if file_cover.filename != '':
                 if allowed_file(file_cover.filename, ALLOWED_EXTENSIONS_IMAGE):
                     if current_cover_image_path and os.path.exists(os.path.join(STATIC_FOLDER, current_cover_image_path)):
                         try: os.remove(os.path.join(STATIC_FOLDER, current_cover_image_path))
@@ -839,7 +818,7 @@ def admin_edit_book(book_id):
         if jenis_buku == 'digital':
             if 'file_ebook' in request.files:
                 file_ebook = request.files['file_ebook']
-                if file_ebook.filename != '': 
+                if file_ebook.filename != '':
                     if allowed_file(file_ebook.filename, ALLOWED_EXTENSIONS_EBOOK):
                         if current_file_ebook_path and os.path.exists(os.path.join(STATIC_FOLDER, current_file_ebook_path)):
                             try: os.remove(os.path.join(STATIC_FOLDER, current_file_ebook_path))
@@ -849,10 +828,10 @@ def admin_edit_book(book_id):
                         file_ebook.save(os.path.join(app.config['UPLOAD_FOLDER_EBOOK'], unique_filename_ebook))
                         new_file_ebook_path = os.path.join('uploads', 'ebooks', unique_filename_ebook).replace('\\', '/')
                     else: error = "Format file eBook baru tidak diizinkan."
-            elif not new_file_ebook_path: 
+            elif not new_file_ebook_path:
                 error = "File eBook diperlukan untuk buku digital."
-        else: 
-            new_file_ebook_path = None 
+        else:
+            new_file_ebook_path = None
             if current_file_ebook_path and os.path.exists(os.path.join(STATIC_FOLDER, current_file_ebook_path)):
                 try: os.remove(os.path.join(STATIC_FOLDER, current_file_ebook_path))
                 except OSError as e: print(f"Error deleting old ebook when switching to physical: {e}")
@@ -879,7 +858,7 @@ def admin_edit_book(book_id):
                 flash(f"Buku '{judul}' berhasil diperbarui!", "success")
                 return redirect(url_for('admin_list_books'))
             except Exception as e: error = f"Gagal memperbarui buku di database: {e}"
-        if error: 
+        if error:
             flash(error, "danger")
             form_data_for_render['cover_image_path'] = new_cover_image_path if 'cover_image' in request.files and request.files['cover_image'].filename != '' and not error else current_cover_image_path
             form_data_for_render['file_ebook_path'] = new_file_ebook_path if 'file_ebook' in request.files and request.files['file_ebook'].filename != '' and not error else current_file_ebook_path
@@ -889,7 +868,7 @@ def admin_edit_book(book_id):
     return render_template('admin/edit_book.html', title=f"Edit Buku: {book_to_edit['judul']}", book=book_to_edit, categories=all_categories)
 
 @app.route('/admin/delete_book/<int:book_id>', methods=['POST'])
-@staff_required 
+@staff_required
 def admin_delete_book(book_id):
     db = get_db()
     book_to_delete = db.execute("SELECT judul, cover_image_path, file_ebook_path FROM books WHERE book_id = ?", (book_id,)).fetchone()
@@ -897,7 +876,7 @@ def admin_delete_book(book_id):
         flash(f"Buku dengan ID {book_id} tidak ditemukan.", "warning")
         return redirect(url_for('admin_list_books'))
     try:
-        db.execute("DELETE FROM loans WHERE book_id = ?", (book_id,)) 
+        db.execute("DELETE FROM loans WHERE book_id = ?", (book_id,))
         db.execute("DELETE FROM books WHERE book_id = ?", (book_id,))
         db.commit()
         if book_to_delete['cover_image_path']:
@@ -917,27 +896,14 @@ def admin_delete_book(book_id):
         flash(f"Terjadi kesalahan saat menghapus file terkait: {e_file}", "danger")
     return redirect(url_for('admin_list_books'))
 
-@app.route('/admin/pending_loans', methods=['GET', 'POST'])
-@staff_required 
+# --- MANAJEMEN PEMINJAMAN ---
+@app.route('/admin/pending_loans')
+@staff_required
 def admin_pending_loans():
-    if request.method == 'POST':
-        loan_id_manual = request.form.get('loan_id_manual')
-        if loan_id_manual:
-            try:
-                loan_id_int = int(loan_id_manual)
-                return admin_confirm_loan_action(loan_id_int) 
-            except ValueError:
-                flash("ID Peminjaman harus berupa angka.", "danger")
-        else:
-            flash("ID Peminjaman tidak boleh kosong.", "warning")
-        return redirect(url_for('admin_pending_loans'))
-
     db = get_db()
     pending_loans_raw = db.execute(
         """
-        SELECT l.loan_id, l.tanggal_pinjam AS tanggal_permintaan, l.user_id AS peminjam_user_id,
-               u.nama_lengkap AS nama_peminjam, u.nomor_anggota,
-               b.judul AS judul_buku, b.book_id
+        SELECT l.loan_id, l.tanggal_pinjam AS tanggal_permintaan, u.nama_lengkap AS nama_peminjam, b.judul AS judul_buku
         FROM loans l
         JOIN users u ON l.user_id = u.user_id
         JOIN books b ON l.book_id = b.book_id
@@ -945,23 +911,19 @@ def admin_pending_loans():
         ORDER BY l.tanggal_pinjam ASC
         """
     ).fetchall()
-    pending_loans = []
-    for row_raw in pending_loans_raw:
-        row = dict(row_raw)
-        row['tanggal_permintaan_dt'] = parse_datetime_str(row.get('tanggal_permintaan'))
-        pending_loans.append(row)
     return render_template('admin/pending_loans.html', 
                            title="Konfirmasi Peminjaman Buku", 
-                           pending_loans=pending_loans)
+                           pending_loans=[dict(row) for row in pending_loans_raw])
 
 @app.route('/admin/confirm_loan/<int:loan_id>', methods=['POST'])
-@staff_required 
+@staff_required
 def admin_confirm_loan_action(loan_id):
     db = get_db()
     loan_to_confirm = db.execute("SELECT * FROM loans WHERE loan_id = ? AND status_pinjaman = 'menunggu_konfirmasi_admin'", (loan_id,)).fetchone()
     if not loan_to_confirm:
-        flash("Peminjaman tidak ditemukan atau sudah dikonfirmasi.", "warning")
+        flash("Peminjaman tidak valid atau sudah diproses.", "danger")
         return redirect(url_for('admin_pending_loans'))
+    
     book_id = loan_to_confirm['book_id']
     book = db.execute("SELECT stok_fisik, judul FROM books WHERE book_id = ?", (book_id,)).fetchone()
     if not book or book['stok_fisik'] <= 0:
@@ -980,73 +942,61 @@ def admin_confirm_loan_action(loan_id):
         flash(f"Gagal mengkonfirmasi peminjaman: {e}", "danger")
     return redirect(url_for('admin_pending_loans'))
 
-@app.route('/admin/active_loans', methods=['GET', 'POST'])
-@staff_required 
-def admin_active_loans():
-    if request.method == 'POST':
-        loan_id_manual = request.form.get('loan_id_manual')
-        if loan_id_manual:
-            try:
-                loan_id_int = int(loan_id_manual)
-                return admin_return_book(loan_id_int)
-            except ValueError:
-                flash("ID Peminjaman harus berupa angka.", "danger")
-        else:
-            flash("ID Peminjaman tidak boleh kosong.", "warning")
-        return redirect(url_for('admin_active_loans'))
-    
+@app.route('/admin/reject_loan/<int:loan_id>', methods=['POST'])
+@staff_required
+def admin_reject_loan_action(loan_id):
+    """Fungsi baru untuk menolak permintaan peminjaman."""
     db = get_db()
-    active_physical_loans_raw = db.execute(
-        """
+    loan_to_reject = db.execute("SELECT b.judul FROM loans l JOIN books b ON l.book_id = b.book_id WHERE l.loan_id = ? AND l.status_pinjaman = 'menunggu_konfirmasi_admin'", (loan_id,)).fetchone()
+    if not loan_to_reject:
+        flash("Permintaan tidak valid atau sudah diproses.", "danger")
+        return redirect(url_for('admin_pending_loans'))
+    
+    try:
+        db.execute("DELETE FROM loans WHERE loan_id = ?", (loan_id,))
+        db.commit()
+        flash(f"Permintaan peminjaman buku '{loan_to_reject['judul']}' (ID: {loan_id}) telah ditolak/dibatalkan.", "info")
+    except sqlite3.Error as e:
+        db.rollback()
+        flash(f"Gagal menolak permintaan: {e}", "danger")
+    return redirect(url_for('admin_pending_loans'))
+
+
+@app.route('/admin/active_loans')
+@staff_required
+def admin_active_loans():
+    db = get_db()
+    active_loans_raw = db.execute("""
         SELECT l.loan_id, l.tanggal_pinjam, l.tanggal_jatuh_tempo, l.status_pinjaman,
-               u.user_id AS peminjam_user_id, u.nama_lengkap AS nama_peminjam, u.nomor_anggota,
-               b.judul AS judul_buku, b.book_id
+               u.nama_lengkap AS nama_peminjam,
+               b.judul AS judul_buku
         FROM loans l
         JOIN users u ON l.user_id = u.user_id
         JOIN books b ON l.book_id = b.book_id
         WHERE l.tipe_pinjaman = 'fisik' AND l.status_pinjaman IN ('dipinjam', 'terlambat_dikembalikan') 
         ORDER BY l.tanggal_jatuh_tempo ASC
-        """
-    ).fetchall()
-    active_physical_loans = []
-    for row_raw in active_physical_loans_raw:
-        row = dict(row_raw)
-        row['tanggal_pinjam_dt'] = parse_datetime_str(row.get('tanggal_pinjam'))
-        row['tanggal_jatuh_tempo_dt'] = parse_datetime_str(row.get('tanggal_jatuh_tempo'))
-        active_physical_loans.append(row)
+    """).fetchall()
+    
+    active_loans = []
+    for row_raw in active_loans_raw:
+        loan_item = dict(row_raw)
+        loan_item['tanggal_jatuh_tempo_dt'] = parse_datetime_str(loan_item.get('tanggal_jatuh_tempo'))
+        active_loans.append(loan_item)
 
-    processed_loan_id = request.args.get('processed_loan_id', type=int)
-    processed_loan_details = None
-    if processed_loan_id:
-        pld_raw = db.execute(
-             """
-             SELECT l.*, u.nama_lengkap AS nama_peminjam, u.user_id, u.nomor_anggota, b.judul AS judul_buku 
-             FROM loans l 
-             JOIN users u ON l.user_id = u.user_id 
-             JOIN books b ON l.book_id = b.book_id 
-             WHERE l.loan_id = ?
-             """, (processed_loan_id,)
-        ).fetchone()
-        if pld_raw:
-            processed_loan_details = dict(pld_raw)
-            processed_loan_details['tanggal_pinjam_dt'] = parse_datetime_str(processed_loan_details.get('tanggal_pinjam'))
-            processed_loan_details['tanggal_jatuh_tempo_dt'] = parse_datetime_str(processed_loan_details.get('tanggal_jatuh_tempo'))
-            processed_loan_details['tanggal_kembali_dt'] = parse_datetime_str(processed_loan_details.get('tanggal_kembali'))
     return render_template('admin/active_loans.html', 
-                           title="Peminjaman Buku Fisik Aktif", 
-                           loans=active_physical_loans,
-                           processed_loan_details=processed_loan_details)
+                           title="Pengembalian Buku", 
+                           loans=active_loans)
 
 @app.route('/admin/return_book/<int:loan_id>', methods=['POST'])
-@staff_required 
+@staff_required
 def admin_return_book(loan_id):
     db = get_db()
     loan = db.execute("SELECT * FROM loans WHERE loan_id = ? AND tipe_pinjaman = 'fisik' AND status_pinjaman IN ('dipinjam', 'terlambat_dikembalikan')", (loan_id,)).fetchone()
     if not loan:
-        flash("Data peminjaman tidak ditemukan atau buku sudah dikembalikan.", "warning")
+        flash("Data peminjaman tidak valid atau sudah diproses.", "danger")
         return redirect(url_for('admin_active_loans'))
+        
     book_id = loan['book_id']
-    user_id_peminjam = loan['user_id'] 
     tanggal_kembali = datetime.datetime.now()
     tanggal_jatuh_tempo_str = loan['tanggal_jatuh_tempo']
     denda_final = 0
@@ -1056,8 +1006,8 @@ def admin_return_book(loan_id):
             jatuh_tempo_dt_obj = parse_datetime_str(tanggal_jatuh_tempo_str)
             if jatuh_tempo_dt_obj and tanggal_kembali.date() > jatuh_tempo_dt_obj.date():
                 selisih_hari = (tanggal_kembali.date() - jatuh_tempo_dt_obj.date()).days
-                denda_final = selisih_hari * DENDA_PER_HARI 
-                status_baru = 'terlambat_dikembalikan' 
+                denda_final = selisih_hari * DENDA_PER_HARI
+                status_baru = 'terlambat_dikembalikan'
                 flash(f"Buku dikembalikan terlambat {selisih_hari} hari. Denda: Rp {denda_final:,.0f}", "warning")
         
         db.execute(
@@ -1067,17 +1017,14 @@ def admin_return_book(loan_id):
         db.execute("UPDATE books SET stok_fisik = stok_fisik + 1 WHERE book_id = ?", (book_id,))
         db.commit()
         flash("Buku telah ditandai sebagai dikembalikan.", "success")
-        return redirect(url_for('admin_active_loans', processed_loan_id=loan_id, user_id_peminjam=user_id_peminjam))
     except sqlite3.Error as e:
-        db.rollback() 
-        flash(f"Gagal memproses pengembalian buku: {e}", "danger")
-    except ValueError as ve: 
-        flash(f"Format tanggal jatuh tempo tidak valid pada data peminjaman: {ve}", "danger")
+        db.rollback()
+        flash(f"Gagal memproses pengembalian: {e}", "danger")
     return redirect(url_for('admin_active_loans'))
 
-# --- MANAJEMEN PENGGUNA DENGAN ALUR PERMINTAAN ---
+# --- MANAJEMEN PENGGUNA ---
 @app.route('/admin/users')
-@staff_required 
+@staff_required
 def admin_list_users():
     db = get_db()
     users_data_raw = db.execute("""
@@ -1102,8 +1049,8 @@ def admin_list_users():
     return render_template('admin/list_users.html', title="Manajemen Pengguna", users=users_data)
 
 @app.route('/admin/user/toggle_role/<int:user_id>', methods=['POST'])
-@admin_required 
-def admin_toggle_user_role(user_id): 
+@admin_required
+def admin_toggle_user_role(user_id):
     db = get_db()
     user_to_update = db.execute("SELECT user_id, role, nama_lengkap FROM users WHERE user_id = ?", (user_id,)).fetchone()
     if not user_to_update:
@@ -1140,16 +1087,15 @@ def admin_toggle_user_role(user_id):
             flash(f"Gagal mengubah role pengguna: {e}", "danger")
     return redirect(url_for('admin_list_users'))
 
-
 @app.route('/admin/user/toggle_active/<int:user_id>', methods=['POST'])
-@admin_required 
-def admin_toggle_user_active_status(user_id): 
+@admin_required
+def admin_toggle_user_active_status(user_id):
     db = get_db()
     user_to_toggle = db.execute("SELECT user_id, nama_lengkap, is_active FROM users WHERE user_id = ?", (user_id,)).fetchone()
     if not user_to_toggle:
         flash("Pengguna tidak ditemukan.", "danger")
         return redirect(url_for('admin_list_users'))
-    if user_to_toggle['user_id'] == g.user['user_id']: 
+    if user_to_toggle['user_id'] == g.user['user_id']:
         flash("Anda tidak dapat menonaktifkan akun Anda sendiri.", "warning")
         return redirect(url_for('admin_list_users'))
     new_status = 0 if user_to_toggle['is_active'] == 1 else 1
@@ -1163,11 +1109,11 @@ def admin_toggle_user_active_status(user_id):
     return redirect(url_for('admin_list_users'))
 
 @app.route('/admin/user/<int:target_user_id>/request_action', methods=['POST'])
-@staff_required 
-def admin_request_user_action(target_user_id): 
+@staff_required
+def admin_request_user_action(target_user_id):
     db = get_db()
     action_type = request.form.get('action_type')
-    reason = request.form.get('reason', 'Diajukan oleh staf perpustakaan.') 
+    reason = request.form.get('reason', 'Diajukan oleh staf perpustakaan.')
     allowed_actions = ['deactivate_account', 'activate_account', 'change_role_to_pustakawan', 'change_role_to_anggota', 'change_role_to_admin']
     if action_type not in allowed_actions:
         flash("Jenis aksi tidak valid.", "danger")
@@ -1209,8 +1155,8 @@ def admin_request_user_action(target_user_id):
     return redirect(url_for('admin_list_users'))
 
 @app.route('/admin/action_requests')
-@admin_required 
-def admin_view_action_requests(): 
+@admin_required
+def admin_view_action_requests():
     db = get_db()
     pending_requests_raw = db.execute(
         """
@@ -1250,8 +1196,8 @@ def admin_view_action_requests():
                            processed_requests=processed_requests)
 
 @app.route('/admin/action_requests/<int:request_id>/process', methods=['POST'])
-@admin_required 
-def admin_process_action_request(request_id): 
+@admin_required
+def admin_process_action_request(request_id):
     db = get_db()
     decision = request.form.get('decision')
     admin_notes = request.form.get('admin_notes', '')
@@ -1308,7 +1254,7 @@ def admin_process_action_request(request_id):
     return redirect(url_for('admin_view_action_requests'))
 
 @app.route('/admin/user/<int:user_id>/detail')
-@staff_required 
+@staff_required
 def admin_user_detail(user_id):
     db = get_db()
     selected_user_raw = db.execute("SELECT * FROM users WHERE user_id = ?", (user_id,)).fetchone()
@@ -1366,46 +1312,8 @@ def admin_user_detail(user_id):
                            total_unpaid_fines_for_user=total_unpaid_fines_for_user,
                            user_action_requests=user_requests)
 
-@app.route('/admin/reports')
-@admin_required 
-def admin_reports():
-    db = get_db()
-    total_loans = db.execute("SELECT COUNT(loan_id) FROM loans").fetchone()[0] or 0
-    physical_loans = db.execute("SELECT COUNT(loan_id) FROM loans WHERE tipe_pinjaman = 'fisik'").fetchone()[0] or 0
-    digital_loans = db.execute("SELECT COUNT(loan_id) FROM loans WHERE tipe_pinjaman = 'digital'").fetchone()[0] or 0
-    total_fines_collected = db.execute("SELECT SUM(denda) FROM loans WHERE denda > 0 AND (status_pinjaman = 'dikembalikan' OR status_pinjaman = 'terlambat_dikembalikan')").fetchone()[0] or 0
-    popular_books = db.execute(
-        """
-        SELECT b.judul, COUNT(l.loan_id) as jumlah_peminjaman
-        FROM loans l
-        JOIN books b ON l.book_id = b.book_id
-        GROUP BY l.book_id
-        ORDER BY jumlah_peminjaman DESC
-        LIMIT 5 
-        """
-    ).fetchall() 
-    users_with_most_fines = db.execute(
-        """
-        SELECT u.nama_lengkap, u.nomor_anggota, SUM(l.denda) as total_denda
-        FROM loans l
-        JOIN users u ON l.user_id = u.user_id
-        WHERE l.denda > 0
-        GROUP BY l.user_id
-        ORDER BY total_denda DESC
-        LIMIT 5
-        """
-    ).fetchall()
-    return render_template('admin/reports.html', 
-                           title="Laporan Perpustakaan",
-                           total_loans=total_loans,
-                           physical_loans=physical_loans,
-                           digital_loans=digital_loans,
-                           total_fines_collected=total_fines_collected,
-                           popular_books=popular_books,
-                           users_with_most_fines=users_with_most_fines)
-
 @app.route('/admin/loan/<int:loan_id>/edit_fine', methods=['GET', 'POST'])
-@staff_required 
+@staff_required
 def admin_edit_fine(loan_id):
     db = get_db()
     loan_detail_raw = db.execute(
@@ -1420,7 +1328,7 @@ def admin_edit_fine(loan_id):
         (loan_id,)
     ).fetchone()
 
-    user_id_for_back_link = request.args.get('user_id', type=int) 
+    user_id_for_back_link = request.args.get('user_id', type=int)
     if not loan_detail_raw:
         flash("Data peminjaman tidak ditemukan atau tidak valid untuk penyesuaian denda.", "danger")
         if user_id_for_back_link:
@@ -1432,7 +1340,7 @@ def admin_edit_fine(loan_id):
     loan_detail['tanggal_jatuh_tempo_dt'] = parse_datetime_str(loan_detail.get('tanggal_jatuh_tempo'))
     loan_detail['tanggal_kembali_dt'] = parse_datetime_str(loan_detail.get('tanggal_kembali'))
 
-    if not user_id_for_back_link : 
+    if not user_id_for_back_link :
         user_id_for_back_link = loan_detail['peminjam_user_id']
     
     if request.method == 'POST':
@@ -1446,9 +1354,9 @@ def admin_edit_fine(loan_id):
                 db.execute("UPDATE loans SET denda = ? WHERE loan_id = ?", (new_fine, loan_id))
                 db.commit()
                 flash(f"Denda untuk peminjaman buku '{loan_detail['judul_buku']}' oleh '{loan_detail['nama_peminjam']}' berhasil diperbarui menjadi Rp {new_fine:,.0f}.", "success")
-                if user_id_for_back_link: 
+                if user_id_for_back_link:
                     return redirect(url_for('admin_user_detail', user_id=user_id_for_back_link))
-                return redirect(url_for('admin_active_loans')) 
+                return redirect(url_for('admin_active_loans'))
         except ValueError:
             error = "Jumlah denda harus berupa angka."
         except sqlite3.Error as e:
@@ -1459,6 +1367,285 @@ def admin_edit_fine(loan_id):
     
     return render_template('admin/edit_fine.html', title="Edit Denda Peminjaman", loan=loan_detail, user_id_for_back=user_id_for_back_link)
 
+# =============================================================================
+# --- FITUR BARU & YANG DIPERBARUI ---
+# =============================================================================
+
+@app.route('/admin/profil')
+@staff_required
+def admin_profil():
+    """Menampilkan halaman profil untuk admin atau pustakawan yang sedang login."""
+    if g.user is None:
+        flash("Gagal memuat data pengguna.", "danger")
+        return redirect(url_for('admin_dashboard'))
+    return render_template('admin/profil_staff.html', title="Profil Saya", user=g.user)
+
+@app.route('/admin/kunjungan/catat', methods=['GET', 'POST'])
+@staff_required
+def admin_catat_kunjungan():
+    """Halaman untuk mencatat kunjungan anggota."""
+    db = get_db()
+    if request.method == 'POST':
+        nomor_anggota = request.form.get('nomor_anggota', '').strip()
+        if not nomor_anggota:
+            flash("Nomor anggota tidak boleh kosong.", "warning")
+            return redirect(url_for('admin_catat_kunjungan'))
+
+        anggota = db.execute(
+            "SELECT user_id, nama_lengkap FROM users WHERE nomor_anggota = ? AND role = 'anggota' AND is_active = 1", 
+            (nomor_anggota,)
+        ).fetchone()
+
+        if anggota:
+            try:
+                db.execute(
+                    "INSERT INTO kunjungan (id_anggota, waktu_kunjungan) VALUES (?, datetime('now', 'localtime'))",
+                    (anggota['user_id'],)
+                )
+                db.commit()
+                flash(f"Kunjungan untuk {anggota['nama_lengkap']} ({nomor_anggota}) berhasil dicatat.", 'success')
+            except sqlite3.Error as e:
+                flash(f"Gagal mencatat kunjungan ke database: {e}", "danger")
+        else:
+            flash(f"Anggota dengan nomor {nomor_anggota} tidak ditemukan atau tidak aktif.", 'danger')
+        
+        return redirect(url_for('admin_catat_kunjungan'))
+
+    kunjungan_terakhir_raw = db.execute("""
+        SELECT k.id, u.nama_lengkap, u.nomor_anggota, k.waktu_kunjungan
+        FROM kunjungan k
+        JOIN users u ON k.id_anggota = u.user_id
+        ORDER BY k.waktu_kunjungan DESC
+        LIMIT 10
+    """).fetchall()
+    kunjungan_terakhir = []
+    for row in kunjungan_terakhir_raw:
+        kunjungan_item = dict(row)
+        kunjungan_item['waktu_kunjungan_dt'] = parse_datetime_str(kunjungan_item.get('waktu_kunjungan'))
+        kunjungan_terakhir.append(kunjungan_item)
+
+    return render_template('admin/catat_kunjungan.html', title="Catat Kunjungan Anggota", kunjungan_terakhir=kunjungan_terakhir)
+
+@app.route('/api/search_member')
+@staff_required
+def api_search_member():
+    """API untuk mencari anggota berdasarkan nama atau nomor anggota untuk fitur catat kunjungan."""
+    query = request.args.get('q', '').strip()
+    if len(query) < 3:
+        return jsonify([])
+
+    db = get_db()
+    search_term = f"%{query}%"
+    members = db.execute(
+        """
+        SELECT user_id, nama_lengkap, nomor_anggota, email
+        FROM users
+        WHERE (nama_lengkap LIKE ? OR nomor_anggota LIKE ?) AND role = 'anggota' AND is_active = 1
+        LIMIT 10
+        """,
+        (search_term, search_term)
+    ).fetchall()
+    
+    return jsonify([dict(row) for row in members])
+
+### PERBAIKAN: API BARU DITAMBAHKAN DI SINI ###
+@app.route('/api/loan_details/<int:loan_id>')
+@staff_required
+def api_loan_details(loan_id):
+    """API baru untuk mengambil detail peminjaman via JSON untuk pop-up."""
+    db = get_db()
+    
+    loan_details = db.execute(
+        """
+        SELECT l.*, u.nama_lengkap as nama_peminjam, u.nomor_anggota, b.judul as judul_buku
+        FROM loans l
+        JOIN users u ON l.user_id = u.user_id
+        JOIN books b ON l.book_id = b.book_id
+        WHERE l.loan_id = ?
+        """, (loan_id,)
+    ).fetchone()
+
+    if not loan_details:
+        return jsonify({'error': 'Data peminjaman tidak ditemukan.'}), 404
+    
+    loan_dict = dict(loan_details)
+    
+    allowed_statuses = ['menunggu_konfirmasi_admin', 'dipinjam', 'terlambat_dikembalikan']
+    if loan_dict['status_pinjaman'] not in allowed_statuses:
+        return jsonify({'error': f"Peminjaman dengan status '{loan_dict['status_pinjaman']}' tidak dapat diproses saat ini."}), 400
+
+    if loan_dict['status_pinjaman'] in ('dipinjam', 'terlambat_dikembalikan'):
+        denda = 0
+        jatuh_tempo_dt = parse_datetime_str(loan_dict.get('tanggal_jatuh_tempo'))
+        if jatuh_tempo_dt and datetime.datetime.now().date() > jatuh_tempo_dt.date():
+            selisih_hari = (datetime.datetime.now().date() - jatuh_tempo_dt.date()).days
+            denda = selisih_hari * DENDA_PER_HARI
+        loan_dict['denda_saat_ini'] = denda
+
+    return jsonify(loan_dict)
+
+@app.route('/admin/laporan')
+@staff_required
+def admin_laporan_baru():
+    """Menampilkan halaman laporan baru yang bisa diakses Admin dan Pustakawan."""
+    db = get_db()
+    
+    total_denda = db.execute("SELECT SUM(denda) FROM loans").fetchone()[0] or 0
+    
+    today_str = datetime.date.today().strftime('%Y-%m-%d')
+    month_str = datetime.date.today().strftime('%Y-%m')
+    year_str = datetime.date.today().strftime('%Y')
+
+    pinjaman_hari_ini = db.execute("SELECT COUNT(loan_id) FROM loans WHERE DATE(tanggal_pinjam) = ?", (today_str,)).fetchone()[0] or 0
+    pinjaman_bulan_ini = db.execute("SELECT COUNT(loan_id) FROM loans WHERE STRFTIME('%Y-%m', tanggal_pinjam) = ?", (month_str,)).fetchone()[0] or 0
+    pinjaman_tahun_ini = db.execute("SELECT COUNT(loan_id) FROM loans WHERE STRFTIME('%Y', tanggal_pinjam) = ?", (year_str,)).fetchone()[0] or 0
+    pinjaman_total = db.execute("SELECT COUNT(loan_id) FROM loans").fetchone()[0] or 0
+
+    stats = {
+        'total_denda': total_denda,
+        'pinjaman_hari_ini': pinjaman_hari_ini,
+        'pinjaman_bulan_ini': pinjaman_bulan_ini,
+        'pinjaman_tahun_ini': pinjaman_tahun_ini,
+        'pinjaman_total': pinjaman_total,
+    }
+    
+    peminjaman_aktif_raw = db.execute("""
+        SELECT l.loan_id, u.nama_lengkap, u.nomor_anggota, b.judul, l.tanggal_pinjam, l.tanggal_jatuh_tempo
+        FROM loans l
+        JOIN users u ON l.user_id = u.user_id
+        JOIN books b ON l.book_id = b.book_id
+        WHERE l.status_pinjaman IN ('dipinjam', 'terlambat_dikembalikan') AND l.tipe_pinjaman = 'fisik'
+        ORDER BY l.tanggal_jatuh_tempo ASC
+    """).fetchall()
+    peminjaman_aktif = []
+    today = datetime.date.today()
+    for row in peminjaman_aktif_raw:
+        peminjaman_item = dict(row)
+        jatuh_tempo_dt = parse_datetime_str(peminjaman_item.get('tanggal_jatuh_tempo'))
+        peminjaman_item['is_overdue'] = jatuh_tempo_dt.date() < today if jatuh_tempo_dt else False
+        peminjaman_aktif.append(peminjaman_item)
+
+    pengembalian_terakhir_raw = db.execute("""
+        SELECT l.loan_id, u.nama_lengkap, u.nomor_anggota, b.judul, l.tanggal_pinjam, l.tanggal_kembali, l.denda
+        FROM loans l
+        JOIN users u ON l.user_id = u.user_id
+        JOIN books b ON l.book_id = b.book_id
+        WHERE l.status_pinjaman IN ('dikembalikan', 'terlambat_dikembalikan') AND l.tipe_pinjaman = 'fisik'
+        ORDER BY l.tanggal_kembali DESC
+        LIMIT 20
+    """).fetchall()
+    
+    kunjungan_terakhir_raw = db.execute("""
+        SELECT k.id, u.nama_lengkap, u.nomor_anggota, k.waktu_kunjungan
+        FROM kunjungan k
+        JOIN users u ON k.id_anggota = u.user_id
+        ORDER BY k.waktu_kunjungan DESC
+        LIMIT 20
+    """).fetchall()
+
+    unduhan_ebook_raw = db.execute("""
+        SELECT l.loan_id, u.nama_lengkap, u.nomor_anggota, b.judul, l.tanggal_pinjam
+        FROM loans l
+        JOIN users u ON l.user_id = u.user_id
+        JOIN books b ON l.book_id = b.book_id
+        WHERE l.tipe_pinjaman = 'digital' AND l.status_pinjaman = 'diunduh'
+        ORDER BY l.tanggal_pinjam DESC
+        LIMIT 20
+    """).fetchall()
+
+    return render_template('admin/laporan.html',
+                           title="Laporan Aktivitas Perpustakaan",
+                           stats=stats,
+                           peminjaman=peminjaman_aktif,
+                           pengembalian=[dict(row) for row in pengembalian_terakhir_raw],
+                           kunjungan=[dict(row) for row in kunjungan_terakhir_raw],
+                           unduhan=[dict(row) for row in unduhan_ebook_raw])
+
+@app.route('/admin/laporan/unduh')
+@staff_required
+def admin_unduh_laporan_pdf():
+    """Membuat dan mengirimkan laporan dalam format PDF."""
+    if HTML is None:
+        flash("Fitur unduh PDF tidak tersedia. Library WeasyPrint atau dependensinya (GTK+) belum terinstall dengan benar.", "danger")
+        return redirect(url_for('admin_laporan_baru'))
+        
+    db = get_db()
+    
+    total_denda = db.execute("SELECT SUM(denda) FROM loans").fetchone()[0] or 0
+    
+    today_str = datetime.date.today().strftime('%Y-%m-%d')
+    month_str = datetime.date.today().strftime('%Y-%m')
+    year_str = datetime.date.today().strftime('%Y')
+
+    pinjaman_hari_ini = db.execute("SELECT COUNT(loan_id) FROM loans WHERE DATE(tanggal_pinjam) = ?", (today_str,)).fetchone()[0] or 0
+    pinjaman_bulan_ini = db.execute("SELECT COUNT(loan_id) FROM loans WHERE STRFTIME('%Y-%m', tanggal_pinjam) = ?", (month_str,)).fetchone()[0] or 0
+    pinjaman_tahun_ini = db.execute("SELECT COUNT(loan_id) FROM loans WHERE STRFTIME('%Y', tanggal_pinjam) = ?", (year_str,)).fetchone()[0] or 0
+    pinjaman_total = db.execute("SELECT COUNT(loan_id) FROM loans").fetchone()[0] or 0
+
+    stats = {
+        'total_denda': total_denda,
+        'pinjaman_hari_ini': pinjaman_hari_ini,
+        'pinjaman_bulan_ini': pinjaman_bulan_ini,
+        'pinjaman_tahun_ini': pinjaman_tahun_ini,
+        'pinjaman_total': pinjaman_total,
+    }
+    
+    peminjaman_aktif = db.execute("""
+        SELECT u.nama_lengkap, u.nomor_anggota, b.judul, l.tanggal_pinjam, l.tanggal_jatuh_tempo
+        FROM loans l JOIN users u ON l.user_id = u.user_id JOIN books b ON l.book_id = b.book_id
+        WHERE l.status_pinjaman IN ('dipinjam', 'terlambat_dikembalikan') AND l.tipe_pinjaman = 'fisik'
+        ORDER BY l.tanggal_jatuh_tempo ASC
+    """).fetchall()
+    
+    pengembalian_semua = db.execute("""
+        SELECT u.nama_lengkap, u.nomor_anggota, b.judul, l.tanggal_pinjam, l.tanggal_kembali, l.denda
+        FROM loans l JOIN users u ON l.user_id = u.user_id JOIN books b ON l.book_id = b.book_id
+        WHERE l.status_pinjaman IN ('dikembalikan', 'terlambat_dikembalikan') AND l.tipe_pinjaman = 'fisik'
+        ORDER BY l.tanggal_kembali DESC
+    """).fetchall()
+    
+    kunjungan_semua = db.execute("""
+        SELECT u.nama_lengkap, u.nomor_anggota, k.waktu_kunjungan
+        FROM kunjungan k JOIN users u ON k.id_anggota = u.user_id
+        ORDER BY k.waktu_kunjungan DESC
+    """).fetchall()
+    
+    unduhan_semua = db.execute("""
+        SELECT u.nama_lengkap, u.nomor_anggota, b.judul, l.tanggal_pinjam
+        FROM loans l JOIN users u ON l.user_id = u.user_id JOIN books b ON l.book_id = b.book_id
+        WHERE l.tipe_pinjaman = 'digital' AND l.status_pinjaman = 'diunduh'
+        ORDER BY l.tanggal_pinjam DESC
+    """).fetchall()
+
+    rendered_html = render_template('admin/laporan_pdf.html',
+                                    stats=stats,
+                                    peminjaman=peminjaman_aktif,
+                                    pengembalian=pengembalian_semua,
+                                    kunjungan=kunjungan_semua,
+                                    unduhan=unduhan_semua,
+                                    tanggal_cetak=datetime.datetime.now().strftime("%d %B %Y %H:%M:%S"))
+
+    pdf = HTML(string=rendered_html).write_pdf()
+
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=laporan_digipustaka_{datetime.datetime.now().strftime("%Y-%m-%d")}.pdf'
+    
+    return response
+
+# =============================================================================
+# ERROR HANDLER & MAIN
+# =============================================================================
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('errors/404.html', title="Halaman Tidak Ditemukan"), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.rollback()
+    return render_template('errors/500.html', title="Kesalahan Server"), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
-

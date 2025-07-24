@@ -6,14 +6,120 @@
     <title>{% block title %}Admin Digi Pustaka{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+    <style>
+        /* CSS untuk Dropdown Profil di Header */
+        .admin-header-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        .header-right .dropdown {
+            position: relative;
+        }
+        /* --- PERBAIKAN DI SINI (EFEK SHADOW) --- */
+        .header-right .dropdown-toggle {
+            display: block;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 2px solid #fff; /* Opsi: Menambah border putih */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Efek Shadow */
+            transition: transform 0.2s ease-in-out;
+        }
+        .header-right .dropdown-toggle:hover {
+            transform: scale(1.1); /* Efek zoom saat hover */
+        }
+        .header-right .dropdown-toggle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        /* --- AKHIR PERBAIKAN --- */
+        .header-right .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 60px; /* Sedikit lebih jauh agar tidak menempel */
+            right: 0;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            min-width: 220px;
+            z-index: 1001;
+        }
+        .header-right .dropdown-menu.show {
+            display: block;
+        }
+        .dropdown-menu .user-info {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+        .dropdown-menu .user-info .user-name {
+            font-weight: bold;
+            color: #333;
+            display: block;
+        }
+        .dropdown-menu .user-info .user-role {
+            font-size: 0.85em;
+            color: #777;
+        }
+        .dropdown-menu a.dropdown-item {
+            display: block;
+            padding: 10px 20px;
+            color: #333;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+        .dropdown-menu a.dropdown-item:hover {
+            background-color: #f5f5f5;
+        }
+        .dropdown-menu a.dropdown-item i {
+            margin-right: 10px;
+            width: 16px;
+            color: #555;
+        }
+    </style>
     {% block head_extra %}{% endblock %}
 </head>
 <body>
     <header class="admin-header-main"> 
-        <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Sidebar">
-            <i class="fas fa-bars"></i> 
-        </button>
-        <h1 class="site-title">Digi Pustaka</h1>
+        <div class="header-left">
+            <button class="sidebar-toggle-btn" id="sidebarToggleBtn" title="Toggle Sidebar">
+                <i class="fas fa-bars"></i> 
+            </button>
+            <h1 class="site-title">Digi Pustaka</h1>
+        </div>
+        
+        <div class="header-right">
+            <div class="dropdown" id="profileDropdownContainer">
+                <a href="#" class="dropdown-toggle" id="profileDropdownToggle" aria-haspopup="true" aria-expanded="false">
+                    <img src="{{ url_for('static', filename=g_user.foto_profil_path if g_user.foto_profil_path else 'img/undraw_profile.svg') }}" alt="Foto Profil">
+                </a>
+                <div class="dropdown-menu" id="profileDropdownMenu">
+                    <div class="user-info">
+                        <span class="user-name">{{ g_user.nama_lengkap }}</span>
+                        <span class="user-role">{{ g_user.role | capitalize }}</span>
+                    </div>
+                    <a class="dropdown-item" href="{{ url_for('admin_profil') }}">
+                        <i class="fas fa-user fa-sm fa-fw"></i> Profil Saya
+                    </a>
+                    <a class="dropdown-item" href="{{ url_for('index') }}" target="_blank">
+                        <i class="fas fa-external-link-alt fa-sm fa-fw"></i> Lihat Situs
+                    </a>
+                    <a class="dropdown-item" href="{{ url_for('logout') }}">
+                        <i class="fas fa-sign-out-alt fa-sm fa-fw"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
     </header>
 
     <div class="admin-body-container">
@@ -30,27 +136,25 @@
                     {% endif %}
                 </p>
             </div>
+            
             <nav>
                 <ul>
-                    {% if g_user.role in ['admin', 'pustakawan'] %}
-                        <li><a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' else '' }}"><span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span><span class="link-text">Dashboard</span></a></li>
-                        <li><a href="{{ url_for('admin_list_books') }}" class="{{ 'active' if request.endpoint in ['admin_list_books', 'admin_add_book', 'admin_edit_book'] else '' }}"><span class="menu-icon"><i class="fas fa-book"></i></span><span class="link-text">Manajemen Buku</span></a></li>
-                        <li><a href="{{ url_for('admin_pending_loans') }}" class="{{ 'active' if request.endpoint == 'admin_pending_loans' else '' }}"><span class="menu-icon"><i class="fas fa-hourglass-half"></i></span><span class="link-text">Konfirmasi Pinjaman</span></a></li>
-                        <li><a href="{{ url_for('admin_active_loans') }}" class="{{ 'active' if request.endpoint in ['admin_active_loans', 'admin_edit_fine'] else '' }}"><span class="menu-icon"><i class="fas fa-exchange-alt"></i></span><span class="link-text">Peminjaman Aktif</span></a></li>
-                        <li><a href="{{ url_for('admin_list_users') }}" class="{{ 'active' if request.endpoint in ['admin_list_users', 'admin_user_detail', 'admin_view_action_requests'] else '' }}"><span class="menu-icon"><i class="fas fa-users"></i></span><span class="link-text">Manajemen Pengguna</span></a></li>
-                    {% endif %}
+                    <li><a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' else '' }}"><span class="menu-icon"><i class="fas fa-tachometer-alt"></i></span><span class="link-text">Dashboard</span></a></li>
+                    <li><a href="{{ url_for('admin_list_books') }}" class="{{ 'active' if request.endpoint in ['admin_list_books', 'admin_add_book', 'admin_edit_book'] else '' }}"><span class="menu-icon"><i class="fas fa-book"></i></span><span class="link-text">Manajemen Buku</span></a></li>
+                    <li><a href="{{ url_for('admin_pending_loans') }}" class="{{ 'active' if request.endpoint == 'admin_pending_loans' else '' }}"><span class="menu-icon"><i class="fas fa-hourglass-half"></i></span><span class="link-text">Konfirmasi Pinjaman</span></a></li>
+                    <li><a href="{{ url_for('admin_active_loans') }}" class="{{ 'active' if request.endpoint in ['admin_active_loans', 'admin_edit_fine'] else '' }}"><span class="menu-icon"><i class="fas fa-exchange-alt"></i></span><span class="link-text">Peminjaman Aktif</span></a></li>
+                    <li><a href="{{ url_for('admin_catat_kunjungan') }}" class="{{ 'active' if request.endpoint == 'admin_catat_kunjungan' else '' }}"><span class="menu-icon"><i class="fas fa-walking"></i></span><span class="link-text">Catat Kunjungan</span></a></li>
+                    <li><a href="{{ url_for('admin_list_users') }}" class="{{ 'active' if request.endpoint in ['admin_list_users', 'admin_user_detail'] else '' }}"><span class="menu-icon"><i class="fas fa-users"></i></span><span class="link-text">Manajemen Pengguna</span></a></li>
+                    
+                    <li><a href="{{ url_for('admin_laporan_baru') }}" class="{{ 'active' if request.endpoint in ['admin_laporan_baru', 'admin_unduh_laporan_pdf'] else '' }}"><span class="menu-icon"><i class="fas fa-chart-line"></i></span><span class="link-text">Laporan</span></a></li>
 
                     {% if g_user.role == 'admin' %}
-                        <li><a href="{{ url_for('admin_view_action_requests') }}" class="{{ 'active' if request.endpoint == 'admin_view_action_requests' else '' }}"><span class="menu-icon"><i class="fas fa-tasks"></i></span><span class="link-text">Permintaan Aksi Staf</span></a></li>
-                        <li><a href="{{ url_for('admin_reports') }}" class="{{ 'active' if request.endpoint == 'admin_reports' else '' }}"><span class="menu-icon"><i class="fas fa-chart-line"></i></span><span class="link-text">Laporan</span></a></li>
+                        <li><a href="{{ url_for('admin_view_action_requests') }}" class="{{ 'active' if request.endpoint == 'admin_view_action_requests' else '' }}"><span class="menu-icon"><i class="fas fa-tasks"></i></span><span class="link-text">Permintaan Aksi</span></a></li>
                     {% endif %}
                 </ul>
             </nav>
-            <div class="sidebar-footer-links">
-                <ul>
-                    <li><a href="{{ url_for('logout') }}"><span class="menu-icon"><i class="fas fa-sign-out-alt"></i></span><span class="link-text">Logout</span></a></li>
-                    <li><a href="{{ url_for('index') }}" target="_blank"><span class="menu-icon"><i class="fas fa-external-link-alt"></i></span><span class="link-text">Lihat Situs</span></a></li>
-                </ul>
+            
+            <div class="sidebar-footer-links" style="display: none;">
             </div>
         </aside>
 
@@ -79,7 +183,6 @@
     </footer>
 
     <script>
-    // JavaScript untuk Sidebar Toggle
     document.addEventListener('DOMContentLoaded', function() {
         const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
         const adminSidebar = document.getElementById('adminSidebar');
@@ -161,12 +264,25 @@
                 }
             }
         });
+
+        const profileDropdownToggle = document.getElementById('profileDropdownToggle');
+        const profileDropdownMenu = document.getElementById('profileDropdownMenu');
+
+        profileDropdownToggle.addEventListener('click', function(event) {
+            event.preventDefault();
+            profileDropdownMenu.classList.toggle('show');
+        });
+
+        window.addEventListener('click', function(event) {
+            if (!document.getElementById('profileDropdownContainer').contains(event.target)) {
+                profileDropdownMenu.classList.remove('show');
+            }
+        });
     });
     </script>
     
     {% block scripts %}{% endblock %}
 
-    {# Library untuk Scan QR Code ditambahkan di sini #}
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </body>
 </html>

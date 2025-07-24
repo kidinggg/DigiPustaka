@@ -1,219 +1,184 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}Konfirmasi Peminjaman - Admin Digi Pustaka{% endblock %}
+{% block title %}Konfirmasi Peminjaman - {{ super() }}{% endblock %}
 
-{% block page_title %}Konfirmasi Peminjaman & Scan QR Code{% endblock %}
+{% block page_title %}Konfirmasi Peminjaman Buku{% endblock %}
 
 {% block head_extra %}
 <style>
-    .scanner-section {
-        padding: 25px;
-        background-color: #ffffff; /* Ubah ke putih agar lebih bersih */
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        text-align: center;
-        margin-bottom: 30px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-    }
-    #qr-reader {
-        width: 100%;
-        max-width: 450px;
-        border: 2px solid #007bff;
-        border-radius: 8px;
-        margin: 20px auto 10px;
-        display: none;
-    }
-    .scan-result-container {
-        display: none; /* Sembunyikan awal */
-        margin-top: 20px;
-        padding: 20px;
-        border: 1px solid #17a2b8; /* Border warna info */
-        border-radius: 8px;
-        background-color: #f1f9fa; /* Latar yang lembut */
-        text-align: left;
-    }
-    .scan-result-container h5 {
-        font-weight: 600;
-        color: #0c5460; /* Warna teks gelap */
-        margin-top: 0;
-        margin-bottom: 15px;
-    }
-    .scan-result-container p {
-        font-size: 1.1em;
-        margin-bottom: 8px;
-    }
-    .scan-result-container .confirm-form {
-        margin-top: 15px;
-        border-top: 1px dashed #ced4da;
-        padding-top: 15px;
-    }
-    #scan-result-message {
-        margin-top: 10px;
-        font-weight: bold;
-        min-height: 24px;
-    }
+    /* CSS untuk Modal (Pop-up) */
+    .modal { display: none; position: fixed; z-index: 1050; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); }
+    .modal-content { background-color: #fefefe; margin: 10% auto; padding: 0; border: 1px solid #888; width: 90%; max-width: 500px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation-name: animatetop; animation-duration: 0.4s }
+    @keyframes animatetop { from {top: -300px; opacity: 0} to {top: 0; opacity: 1} }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: #4e73df; color: white; border-bottom: 1px solid #dee2e6; border-top-left-radius: 8px; border-top-right-radius: 8px; }
+    .modal-header h4 { margin: 0; font-size: 1.25rem; }
+    .modal-body { padding: 20px; }
+    .modal-body ul { list-style: none; padding: 0; margin: 0; }
+    .modal-body li { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f1f1; }
+    .modal-body li:last-child { border-bottom: none; }
+    .modal-body li strong { color: #000; text-align: right; }
+    .modal-footer { padding: 15px 20px; text-align: right; border-top: 1px solid #dee2e6; background-color: #f8f9fc; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
+    .close-btn { color: white; opacity: 0.8; font-size: 28px; font-weight: bold; }
+    .close-btn:hover, .close-btn:focus { color: #fff; opacity: 1; text-decoration: none; cursor: pointer; }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<div class="scanner-section">
-    <h4><i class="fas fa-qrcode"></i> Scan QR Code Peminjaman</h4>
-    <p class="text-muted">Arahkan kamera ke QR Code pada struk permintaan anggota.</p>
-    <button type="button" class="btn btn-theme-primary" id="start-scan-btn" style="font-size: 1.1em; padding: 12px 25px;">
-        Buka Kamera Scanner
-    </button>
-    <div id="qr-reader"></div>
-    <div id="scan-result-message"></div>
-</div>
-
-<div id="scan-result-container" class="scan-result-container">
-    <h5><i class="fas fa-user-check"></i> Konfirmasi Detail Peminjaman</h5>
-    <p><strong>Nama Peminjam:</strong> <span id="peminjam-nama"></span></p>
-    <p><strong>Judul Buku:</strong> <span id="buku-judul"></span></p>
-    <form id="finalConfirmForm" action="" method="post" class="confirm-form">
-        <button type="submit" class="btn btn-success"><i class="fas fa-check-circle"></i> Ya, Konfirmasi & Serahkan Buku</button>
-        <button type="button" id="cancel-scan-btn" class="btn btn-secondary">Batal</button>
-    </form>
-</div>
-
-<div class="loan-history-card" style="margin-top: 30px;">
-    <h3>Daftar Permintaan Menunggu Konfirmasi (Manual)</h3>
-    {% if pending_loans %}
-        <div class="table-responsive-wrapper">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ID Pinjam</th>
-                        <th>No. Anggota</th>
-                        <th>Nama Peminjam</th>
-                        <th>Judul Buku</th>
-                        <th>Tgl Permintaan</th>
-                        <th style="width: 220px;">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for loan in pending_loans %}
-                    <tr>
-                        <td>{{ loan['loan_id'] }}</td>
-                        <td>{{ loan['nomor_anggota'] }}</td>
-                        <td>{{ loan['nama_peminjam'] }}</td>
-                        <td>{{ loan['judul_buku'] }}</td>
-                        <td>{{ loan.tanggal_permintaan_dt.strftime('%d-%m-%Y %H:%M') if loan.tanggal_permintaan_dt else '-' }}</td>
-                        <td class="action-buttons">
-                            <form action="{{ url_for('admin_confirm_loan_action', loan_id=loan.loan_id) }}" method="post" 
-                                  onsubmit="return confirm('Konfirmasi peminjaman buku ' + {{ loan.judul_buku|tojson }} + ' untuk ' + {{ loan.nama_peminjam|tojson }} + '? Stok akan dikurangi.');">
-                                <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check-circle"></i> Konfirmasi Manual</button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="card-container-grid" style="grid-template-columns: 1fr 1.5fr; align-items: flex-start;">
+    <div class="card card-primary">
+        <div class="card-header">
+            <h3><i class="fas fa-qrcode"></i> Pemindai QR Code</h3>
         </div>
-    {% else %}
-        <p class="no-data">Tidak ada permintaan peminjaman yang menunggu konfirmasi saat ini.</p>
-    {% endif %}
+        <div class="card-body">
+            <div id="qr-reader" style="width: 100%; max-width: 500px; margin: 0 auto 15px;"></div>
+            <div id="qr-reader-status" class="text-center"></div>
+            <button id="rescanBtn" class="btn btn-secondary btn-full-width mt-2" style="display: none;">
+                <i class="fas fa-sync-alt"></i> Scan Ulang
+            </button>
+            <p class="card-description text-center mt-2">Arahkan kamera ke QR Code pada struk permintaan.</p>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header">
+            <h3>Daftar Permintaan Menunggu Konfirmasi</h3>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID Pinjam</th>
+                            <th>Nama Peminjam</th>
+                            <th>Judul Buku</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for loan in pending_loans %}
+                        <tr>
+                            <td>{{ loan.loan_id }}</td>
+                            <td>{{ loan.nama_peminjam }}</td>
+                            <td>{{ loan.judul_buku }}</td>
+                            <td>
+                                <button class="btn btn-secondary btn-sm check-btn" data-loan-id="{{ loan.loan_id }}">Cek</button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="text-center">Tidak ada permintaan.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
-<audio id="scan-beep" src="{{ url_for('static', filename='sounds/beep.mp3') }}" preload="auto"></audio>
-
+<div id="verificationModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h4 id="modalTitle">Verifikasi Peminjaman</h4>
+      <span class="close-btn">&times;</span>
+    </div>
+    <div class="modal-body">
+      <p id="modalMessage">Mohon periksa detail peminjaman sebelum melanjutkan:</p>
+      <ul id="modalDetails" class="list-group list-group-flush"></ul>
+    </div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const startScanBtn = document.getElementById('start-scan-btn');
-    const qrReaderDiv = document.getElementById('qr-reader');
-    const scanResultMessage = document.getElementById('scan-result-message');
-    const scanResultContainer = document.getElementById('scan-result-container');
-    const cancelScanBtn = document.getElementById('cancel-scan-btn');
-    const audioBeep = document.getElementById('scan-beep');
-    let html5QrCode;
+    const modal = document.getElementById('verificationModal');
+    const closeBtn = document.querySelector('.close-btn');
+    const rescanBtn = document.getElementById('rescanBtn');
+    const qrStatus = document.getElementById('qr-reader-status');
+    let html5QrcodeScanner;
+
+    function startScanner() {
+        qrStatus.innerHTML = "";
+        rescanBtn.style.display = 'none';
+        html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: {width: 250, height: 250} }, false);
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }
 
     function onScanSuccess(decodedText, decodedResult) {
-        if (html5QrCode && html5QrCode.isScanning) {
-            html5QrCode.stop().then(() => {
-                qrReaderDiv.style.display = 'none';
-                startScanBtn.textContent = 'Scan Ulang';
-                startScanBtn.style.display = 'block'; 
-                
-                if (audioBeep) {
-                    audioBeep.play().catch(e => console.error("Gagal memutar suara:", e));
-                }
-
-                if (!isNaN(decodedText)) {
-                    fetch(`/api/loan/${decodedText}/details`)
-                        .then(response => {
-                            if (!response.ok) {
-                                return response.json().then(err => Promise.reject(err));
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            document.getElementById('peminjam-nama').textContent = data.nama_peminjam;
-                            document.getElementById('buku-judul').textContent = data.judul_buku;
-                            
-                            const confirmForm = document.getElementById('finalConfirmForm');
-                            confirmForm.action = `{{ url_for('admin_confirm_loan_action', loan_id=0) }}`.replace('0', data.loan_id);
-                            
-                            scanResultMessage.innerHTML = `<span style="color: green;">✔ QR Code Terdeteksi!</span>`;
-                            scanResultContainer.style.display = 'block';
-                            startScanBtn.style.display = 'none';
-                        })
-                        .catch(error => {
-                            scanResultMessage.innerHTML = `<span style="color: red;">✖ Error: ${error.error || 'Data peminjaman tidak valid atau sudah diproses.'}</span>`;
-                        });
-                } else {
-                    scanResultMessage.innerHTML = `<span style="color: red;">✖ QR Code tidak valid.</span>`;
-                }
-            }).catch(err => console.error("Gagal menghentikan scanner.", err));
+        const loanId = decodedText.trim();
+        if (!isNaN(loanId)) {
+            html5QrcodeScanner.clear().catch(err => console.error("Gagal membersihkan scanner:", err));
+            qrStatus.innerHTML = `<div class="alert alert-success">Berhasil memindai ID Pinjam: <strong>${loanId}</strong>. Memuat detail...</div>`;
+            rescanBtn.style.display = 'block';
+            fetchLoanDetails(loanId);
+        } else {
+            qrStatus.innerHTML = `<div class="alert alert-warning">QR Code tidak berisi ID Peminjaman yang valid.</div>`;
         }
     }
 
-    function onScanFailure(error) { /* Abaikan */ }
+    function onScanFailure(error) { /* Biarkan kosong */ }
 
-    if (startScanBtn) {
-        startScanBtn.addEventListener('click', () => {
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("qr-reader");
-            }
-            const isScanning = qrReaderDiv.style.display === 'block';
-
-            if (isScanning) {
-                if (html5QrCode.isScanning) {
-                     html5QrCode.stop().then(() => {
-                        qrReaderDiv.style.display = 'none';
-                        startScanBtn.textContent = 'Scan QR Code Peminjaman';
-                    });
+    function fetchLoanDetails(loanId) {
+        // ### PERBAIKAN DI SINI ###
+        // Membuat URL dengan placeholder '0', lalu menggantinya dengan loanId yang benar.
+        const url = "{{ url_for('api_loan_details', loan_id=0) }}".replace('/0', `/${loanId}`);
+        
+        fetch(url)
+            .then(response => {
+                if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    alert(`Error: ${data.error}`);
+                    qrStatus.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                } else if (data.status_pinjaman !== 'menunggu_konfirmasi_admin') {
+                    alert(`Error: Peminjaman ini sudah diproses atau statusnya tidak valid.`);
+                    qrStatus.innerHTML = `<div class="alert alert-warning">Peminjaman dengan ID ${loanId} sudah diproses.</div>`;
+                } else {
+                    displayModal(data);
                 }
-            } else {
-                scanResultContainer.style.display = 'none';
-                qrReaderDiv.style.display = 'block';
-                startScanBtn.textContent = 'Tutup Kamera';
-                scanResultMessage.innerHTML = '<span style="color: #007bff;">Arahkan QR Code ke kamera...</span>';
-
-                html5QrCode.start(
-                    { facingMode: "environment" }, 
-                    { fps: 10, qrbox: { width: 300, height: 300 } },
-                    onScanSuccess, 
-                    onScanFailure
-                ).catch(err => {
-                    alert("Gagal memulai kamera. Pastikan Anda memberikan izin akses kamera.");
-                    qrReaderDiv.style.display = 'none';
-                    startScanBtn.textContent = 'Scan QR Code Peminjaman';
-                });
-            }
-        });
+            })
+            .catch(e => {
+                console.error("Fetch error:", e);
+                qrStatus.innerHTML = `<div class="alert alert-danger">Gagal mengambil detail peminjaman.</div>`;
+            });
     }
 
-    if (cancelScanBtn) {
-        cancelScanBtn.addEventListener('click', () => {
-            scanResultContainer.style.display = 'none';
-            scanResultMessage.textContent = '';
-            startScanBtn.style.display = 'block';
-        });
+    function displayModal(data) {
+        const modalDetails = document.getElementById('modalDetails');
+        const tglPermintaan = new Date(data.tanggal_permintaan).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short'});
+        modalDetails.innerHTML = `
+            <li><span>ID Pinjam:</span> <strong>#${data.loan_id}</strong></li>
+            <li><span>Peminjam:</span> <strong>${data.nama_peminjam} (${data.nomor_anggota})</strong></li>
+            <li><span>Buku:</span> <strong>${data.judul_buku}</strong></li>
+            <li><span>Tgl Permintaan:</span> <strong>${tglPermintaan}</strong></li>
+        `;
+        
+        const modalFooter = document.getElementById('modalFooter');
+        modalFooter.innerHTML = `
+            <form action="${"{{ url_for('admin_reject_loan_action', loan_id=0) }}".replace('/0', `/${data.loan_id}`)}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-danger">Tolak</button>
+            </form>
+            <form action="${"{{ url_for('admin_confirm_loan_action', loan_id=0) }}".replace('/0', `/${data.loan_id}`)}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-success">Konfirmasi Peminjaman</button>
+            </form>
+        `;
+        modal.style.display = "block";
     }
+
+    closeBtn.onclick = () => { modal.style.display = "none"; }
+    window.onclick = (event) => { if (event.target == modal) { modal.style.display = "none"; } }
+    rescanBtn.addEventListener('click', startScanner);
+    
+    document.querySelectorAll('.check-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const loanId = this.getAttribute('data-loan-id');
+            fetchLoanDetails(loanId);
+        });
+    });
+
+    startScanner();
 });
 </script>
 {% endblock %}
